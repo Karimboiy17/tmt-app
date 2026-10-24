@@ -177,11 +177,23 @@ main.metro{
 }
 .metro .clock .d{font-size:12px;letter-spacing:.5px;color:var(--lime);opacity:.85}
 
-.metro .flip{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
+.metro .tile{perspective:750px}
+.metro .flip::after{
+  content:"";position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none; /* flip sheen */
+  background:linear-gradient(105deg,rgba(255,255,255,.18),rgba(0,0,0,.45));
+  opacity:0;animation:flipSheen var(--dur,14s) cubic-bezier(.45,0,.25,1) infinite;animation-delay:var(--dl,0s)
+}
+@keyframes flipSheen{0%,33%{opacity:0}37%{opacity:.55}42%{opacity:0}77%{opacity:0}81%{opacity:.5}86%,100%{opacity:0}}
+.metro .flip{
+  position:absolute;inset:0;border-radius:inherit;
+  transform-style:preserve-3d;-webkit-transform-style:preserve-3d;
+  animation:tileFlip var(--dur,14s) cubic-bezier(.45,0,.25,1) infinite;
+  animation-delay:var(--dl,0s);
+  will-change:transform;
+}
 .metro .face{
   position:absolute;inset:0;padding:14px 15px;
   display:flex;flex-direction:column;justify-content:space-between;
-  overflow:hidden;
   background:
     radial-gradient(115% 85% at 12% -8%,rgba(255,255,255,.17) 0%,rgba(255,255,255,0) 46%),
     radial-gradient(125% 105% at 106% 108%,rgba(0,0,0,.46) 0%,rgba(0,0,0,0) 62%),
@@ -190,28 +202,43 @@ main.metro{
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.12),
     inset 0 -12px 26px rgba(0,0,0,.34);
-  animation:frontOut var(--dur,14s) cubic-bezier(.4,0,.25,1) infinite;
+  border-radius:inherit;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  transform:rotateY(0deg);
+  animation:faceFront var(--dur,14s) linear infinite;
   animation-delay:var(--dl,0s);
-  will-change:transform;
 }
 .metro .face::after{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,0) 50%);
 }
 .metro .face.bk{
-  justify-content:center;gap:8px;transform:translateY(100%);
-  animation-name:backIn;
+  justify-content:center;gap:8px;transform:rotateY(180deg);
+  animation-name:faceBack;
   background:
     radial-gradient(110% 90% at 50% -12%,rgba(231,238,97,.16) 0%,rgba(231,238,97,0) 58%),
     linear-gradient(168deg,#400d4f 0%,#220524 52%,#12020f 100%);
 }
 .metro .face.bk::after{background:linear-gradient(200deg,rgba(231,238,97,.10),rgba(0,0,0,.30))}
-/* back face: logo only — no text, so nothing can read as reversed */
+/* back face: engraved "9" — no text, so nothing can read as reversed */
 .metro .face.bk .lb,.metro .face.bk .ar{display:none}
 .metro .face.bk::before{
-  content:"";position:absolute;inset:0;z-index:0;
-  background:url("assets/logo.jpg") center/56% no-repeat;
-  opacity:.92;
+  content:"9";position:absolute;inset:0;z-index:0;
+  display:grid;place-items:center;
+  font:900 84px/1 -apple-system,BlinkMacSystemFont,"SF Pro Display",Helvetica,Arial,sans-serif;
+  letter-spacing:-3px;
+  background:linear-gradient(180deg,rgba(8,1,10,.98) 0%,rgba(26,4,24,.95) 40%,rgba(120,136,26,.75) 72%,rgba(240,247,150,.95) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:
+    drop-shadow(0 -1.5px 0 rgba(0,0,0,.9))
+    drop-shadow(0 1.5px 0 rgba(231,238,97,.55))
+    drop-shadow(0 6px 18px rgba(0,0,0,.62));
+}
+.metro .tile.wide .face.bk::before{font-size:110px}
+.metro .lime .face.bk{
+  background:
+    radial-gradient(110% 90% at 50% -10%,rgba(231,238,97,.14) 0%,rgba(231,238,97,0) 60%),
+    linear-gradient(168deg,#400d4f 0%,#220524 52%,#12020f 100%);
 }
 
 /* Apple-style app-icon plates — squircle, gradient fill, white glyph */
@@ -266,12 +293,6 @@ main.metro{
     inset 0 -12px 26px rgba(110,120,0,.30);
 }
 .metro .lime .face::after{background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,255,255,0) 56%)}
-.metro .lime .face.bk{
-  background:
-    radial-gradient(110% 90% at 50% -10%,rgba(255,255,255,.45) 0%,rgba(255,255,255,0) 58%),
-    linear-gradient(170deg,#eff57c 0%,#c8d52c 100%);
-}
-.metro .lime .face.bk::after{background:linear-gradient(200deg,rgba(255,255,255,.22),rgba(43,6,37,.18))}
 .metro .lime .ar{color:#2b0625}
 .metro .lime .ic{color:#e7ee61}
 .metro .lime .ic svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
@@ -289,15 +310,20 @@ main.metro{
 .d7{--g1:#63dcff;--g2:#0a7fc4}
 .metro .lime{--g1:#3d0f38;--g2:#1a0316}
 
-@keyframes frontOut{
-  0%,4%   {transform:translateY(0)}
-  10%,44% {transform:translateY(-102%)}
-  52%,100%{transform:translateY(0)}
+@keyframes tileFlip{
+  0%,33%  {transform:rotateY(0deg)}
+  42%,77% {transform:rotateY(180deg)}
+  86%,100%{transform:rotateY(360deg)}
 }
-@keyframes backIn{
-  0%,4%   {transform:translateY(102%)}
-  10%,44% {transform:translateY(0)}
-  52%,100%{transform:translateY(102%)}
+@keyframes faceFront{
+  0%,37%  {opacity:1}
+  39%,80% {opacity:0}
+  84%,100%{opacity:1}
+}
+@keyframes faceBack{
+  0%,37%  {opacity:0}
+  39%,80% {opacity:1}
+  84%,100%{opacity:0}
 }
 
 .d0{--dl:0s}.d1{--dl:1.6s}.d2{--dl:3.2s}.d3{--dl:4.8s}
@@ -308,10 +334,72 @@ body.home footer{
 }
 
 @media (prefers-reduced-motion:reduce){
-  .metro .face{animation:none}
-  .metro .face.bk{transform:translateY(102%)}
+  .metro .flip,.metro .face{animation:none}
+  .metro .face.bk{transform:rotateY(180deg);opacity:0}
 }
 @media (max-width:340px){
   .metro .lb b{font-size:14px}
   .metro .lb i{display:none}
 }
+
+
+/* ===== iOS 18 / Material 3 home cards (v19) ===== */
+body.home{background:#170818;color:#f4effa}
+body.home .wallpaper{opacity:1;background:
+  radial-gradient(120% 70% at 50% -12%, #3a0d35 0%, #240a24 42%, #170818 78%),
+  linear-gradient(180deg,#1c0a1d 0%,#120614 100%)}
+body.home .wallpaper::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 50% at 50% 0%,rgba(231,238,97,.10),transparent 62%)}
+body.home .wallpaper,body.home .scrim{display:none}
+body.home .hero{padding:18px 18px 8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+body.home .hero .corner{font-size:12.5px;color:rgba(240,232,248,.5);text-align:right;line-height:1.25;text-transform:capitalize;letter-spacing:.2px}
+body.home .brand .mark{width:42px;height:42px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+body.home .brand h1{font-size:19px;letter-spacing:-.3px;font-weight:700}
+body.home .brand p{font-size:13px;color:rgba(240,232,248,.62);margin-top:2px}
+
+main.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 16px 26px;max-width:900px;margin:0 auto}
+@media (min-width:560px){main.cards{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:760px){main.cards{grid-template-columns:repeat(3,1fr);gap:14px;max-width:760px}}
+
+.clock{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;padding:4px 4px 10px}
+.clock .t{font-size:42px;line-height:1;font-weight:700;letter-spacing:-1.6px;font-variant-numeric:tabular-nums}
+.clock .d{font-size:13px;color:rgba(240,232,248,.58);text-transform:capitalize;letter-spacing:.2px}
+
+.card{position:relative;display:flex;flex-direction:column;gap:10px;min-height:112px;padding:15px 15px 14px;
+  border-radius:22px;text-decoration:none;color:inherit;overflow:hidden;
+  background:linear-gradient(168deg,rgba(255,255,255,.055),rgba(255,255,255,.022) 46%,rgba(255,255,255,.01));
+  border:1px solid rgba(231,238,97,.10);
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 24px rgba(0,0,0,.28);
+  -webkit-tap-highlight-color:transparent;transition:transform .16s cubic-bezier(.3,.7,.2,1),background .16s}
+.card::after{content:"";position:absolute;inset:-40% -30% auto auto;width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle,var(--ac,rgba(255,255,255,.2)) 0%,transparent 70%);opacity:.075;pointer-events:none}
+.card:active,.card.pressed{transform:scale(.975);background:linear-gradient(168deg,rgba(255,255,255,.09),rgba(255,255,255,.04))}
+
+.card .chip{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;
+  background:color-mix(in srgb,var(--ac,#fff) 22%,transparent);
+  border:1px solid color-mix(in srgb,var(--ac,#fff) 26%,transparent);
+  box-shadow:0 0 0 1px rgba(0,0,0,.25) inset}
+.card .chip svg{width:22px;height:22px;fill:none;stroke:var(--ac,#fff);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+.card .txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.card .txt b{font-size:15.5px;font-weight:600;letter-spacing:-.2px;color:#f7f7fb}
+.card .txt i{font-size:13.5px;font-style:normal;line-height:1.3;color:rgba(240,232,248,.72)}
+
+.card.wide{grid-column:1/-1;min-height:92px;flex-direction:row;align-items:center;gap:14px}
+.card.wide .ch{margin-left:auto;color:rgba(240,232,248,.5);font-size:20px;line-height:1}
+.card.lead{grid-column:1/-1;min-height:96px;flex-direction:row;align-items:center;gap:14px;padding:16px}
+.card.lead .chip{width:50px;height:50px;border-radius:16px}
+.card.lead .chip svg{width:26px;height:26px}
+.card.lead .txt b{font-size:17px}
+.card.lead .ch{margin-left:auto;color:rgba(240,232,248,.55);font-size:21px;line-height:1}
+
+.card[data-ac="lime"]{--ac:#e7ee61}
+.card[data-ac="violet"]{--ac:#b98cf5}
+.card[data-ac="sky"]{--ac:#5cc8ff}
+.card[data-ac="gold"]{--ac:#ffc857}
+.card[data-ac="mint"]{--ac:#6fe8b0}
+.card[data-ac="coral"]{--ac:#ffb3ab}
+.card[data-ac="slate"]{--ac:#b6bec7}
+.card[data-ac="indigo"]{--ac:#9db0ff}
+
+body.home #ft{padding:8px 16px calc(26px + env(safe-area-inset-bottom,0px));text-align:center;font-size:12px;color:rgba(240,232,248,.45)}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.card:active,.card.pressed{transform:none}}
