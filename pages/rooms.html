@@ -109,11 +109,13 @@ function render(branches){
       '<div class="grid">' + b.rooms.map(function(r){
         var dn = (r.done === undefined) ? ((r.photos||0) >= (r.need||need)) : !!r.done;
         RM[r.id] = {id:r.id, name:r.name, branch:b.branch, photos:r.photos||0,
-                    done:dn, reopened:!!r.reopened};
+                    done:dn, reopened:!!r.reopened, staffTotal:r.staff_total||0,
+                    staffDone:r.staff_done||0};
         var cls = dn ? "done" : ((r.photos || r.reopened) ? "part" : "");
         var info = dn ? "✓ bajarildi"
                  : r.reopened ? "↻ qayta ochilgan"
-                 : (r.photos ? r.photos+"/"+(r.need||need) : "—");
+                 : (canManage ? ((r.staff_total||0) ? (r.staff_done||0)+"/"+r.staff_total+" xodim" : "—")
+                              : (r.photos ? r.photos+"/"+(r.need||need) : "—"));
         return '<button class="rm '+cls+'" onclick="openRoom('+r.id+')"><b>'+esc(r.name)+'</b><i>'+info+'</i></button>';
       }).join("") + '</div></div>';
   }).join("");
@@ -137,8 +139,11 @@ function openRoom(id){
   curOpen = (!w || !w.enabled || !!w.open);
   cur = r;
   $("sTitle").textContent = r.name + " · " + r.branch;
-  $("sCnt").textContent = r.done ? "✅ allaqachon bajarilgan" : "Rasmlar: " + r.photos + "/" + need;
-  $("bReset").style.display = (canManage && (r.done || r.photos || r.reopened)) ? "block" : "none";
+  $("sCnt").textContent = canManage
+    ? (r.done ? "✅ tekshirilgan · " + r.staffDone + "/" + r.staffTotal + " xodim"
+              : "Xodimlar: " + r.staffDone + "/" + r.staffTotal + " · rasm: " + r.photos)
+    : (r.done ? "✅ allaqachon bajarilgan" : "Rasmlar: " + r.photos + "/" + need);
+  $("bReset").style.display = (canManage && (r.done || r.photos || r.reopened || r.staffTotal)) ? "block" : "none";
   $("cam").style.display = curOpen ? "" : "none";
   $("bSnap").style.display = curOpen ? "" : "none";
   $("bClose").style.flex = curOpen ? "" : "1";

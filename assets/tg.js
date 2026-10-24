@@ -76,12 +76,40 @@
   window.tgWaitInit = wait;
   window.tgReady = function (cb) { wait(cb, 10000); };
 
+  // initData yo'q bo'lsa so'rovni umuman yubormaymiz (serverda 401 shovqini bo'lmasin)
+  // va foydalanuvchiga tushunarli xabar ko'rsatamiz.
+  var NOINIT = "Ilovani Telegram ichida oching";
+  function banner() {
+    try {
+      if (document.getElementById("tgNoInit")) return;
+      var d = document.createElement("div");
+      d.id = "tgNoInit";
+      d.textContent = "⚠️ " + NOINIT + " — ma'lumot yuklanmaydi";
+      d.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;padding:10px 14px;" +
+        "background:#7f1d1d;color:#fff;font:500 13px/1.4 -apple-system,system-ui,sans-serif;text-align:center";
+      (document.body || document.documentElement).appendChild(d);
+    } catch (e) {}
+  }
+  function noInitResp() {
+    var body = JSON.stringify({ ok: false, error: NOINIT, _noInit: true });
+    var r = {
+      ok: false, status: 0, statusText: "NO_INIT",
+      headers: { get: function () { return "application/json"; } },
+      text: function () { return Promise.resolve(body); },
+      json: function () { return Promise.resolve(JSON.parse(body)); }
+    };
+    r.clone = function () { return r; };
+    return r;
+  }
+  window.tgNoInitError = NOINIT;
+
   window.tgFetch = function (url, opts) {
     opts = opts || {};
     return new Promise(function (resolve, reject) {
       wait(function (d) {
+        if (!d) { banner(); resolve(noInitResp()); return; }
         var h = opts.headers || {};
-        if (d) h["X-Tg-Init"] = d;
+        h["X-Tg-Init"] = d;
         opts.headers = h;
         fetch(full(url), opts).then(resolve, reject);
       }, 8000);
@@ -95,6 +123,11 @@
         var j;
         try { j = JSON.parse(t); } catch (e) { j = { ok: false, error: "server javobi noto'g'ri" }; }
         j._status = r.status;
+        if (r.status === 401) {
+          // initData eskirgan/bo'sh: keshni tozalaymiz, keyingi ochishda yangilanadi
+          try { sessionStorage.removeItem(KEY); } catch (e) {}
+          banner();
+        }
         return j;
       });
     });
@@ -103,7 +136,7 @@
 
 /* auto-update guard: sahifalar uchun */
 (function(){try{
- var VER=30, k='tmt_ver';
+ var VER=31, k='tmt_ver';
  fetch('../version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
   if(!j||!j.ver) return;
   var have=+(sessionStorage.getItem(k)||0);
