@@ -31,6 +31,7 @@
   <a class="back" href="../index.html">← Orqaga</a>
   <h1>Davomat</h1>
   <p class="sub" id="sub">Kamera ochilishi kerak</p>
+  <p class="sub" id="today"></p>
 
   <video id="cam" autoplay playsinline muted></video>
 
@@ -55,6 +56,17 @@ var st  = document.getElementById("st");
 var blob = null, rec = null, chunks = [], stream = null;
 
 function say(msg, cls){ st.textContent = msg || ""; st.className = "st" + (cls ? " " + cls : ""); }
+
+var ATT = "https://maintenance-production-d87e.up.railway.app/api/tmt/attendance";
+function loadToday(){
+  tgFetch(ATT).then(function(r){ return r.json(); }).then(function(j){
+    if (!j || !j.ok) return;
+    var txt = j.state === "offline" ? "Bugun hali kirilmagan"
+            : (j.t_in || "—") + " kirdi" + (j.t_out ? " · " + j.t_out + " ketdi" : " · hali ishda");
+    document.getElementById("today").textContent = "Bugun: " + txt;
+  }).catch(function(){});
+}
+loadToday();
 
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
   .then(function (s) {
@@ -113,7 +125,10 @@ function send(purpose, btn) {
     .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
     .then(function (res) {
       if (res.j && res.j.ok) {
-        say("✅ Yuborildi — guruhga tushdi", "ok");
+        var a = res.j.attendance || {};
+        var extra = a.saved ? " · jadvalga yozildi" : (a.note ? " · " + a.note : "");
+        say("✅ Yuborildi — guruhga tushdi" + extra, "ok");
+        loadToday();
         if (window.Telegram && Telegram.WebApp) Telegram.WebApp.HapticFeedback &&
           Telegram.WebApp.HapticFeedback.notificationOccurred("success");
       } else {
