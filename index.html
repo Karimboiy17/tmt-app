@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Maintenance Team</title>
+<link rel="stylesheet" href="style.css?v=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="assets/tg.js"></script>
+</head>
+<body>
+<header class="hero">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>The Maintenance Team</h1>
+      <p id="who">xodim ilovasi</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <a class="card" href="pages/books.html">
+    <span class="ico">📚</span>
+    <span class="tx">
+      <b>Kitoblar ombori</b>
+      <i>filial qoldiqlari va zakazlar</i>
+    </span>
+    <span class="arw">→</span>
+  </a>
+
+  <div class="soon">
+    <b>Keyingi bosqich</b>
+    <span>Vazifalar · davomat · hisobotlar — shu ilovaga qo‘shiladi</span>
+  </div>
+</main>
+
+<footer id="ft">@tmtzone_bot</footer>
+
+<script>
+(async function(){
+  try{
+    const r = await tgFetch("https://maintenance-production-d87e.up.railway.app/api/webapp/me", {cache:"no-store"});
+    if(r.ok){
+      const u = await r.json();
+      document.getElementById("who").textContent = u.name || "xodim";
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

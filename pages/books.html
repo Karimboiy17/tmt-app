@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kitoblar ombori — TMT</title>
+<link rel="stylesheet" href="../style.css?v=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="../assets/tg.js"></script>
+</head>
+<body>
+<header class="top">
+  <h1>Kitoblar ombori</h1>
+  <span class="sub">filial qoldiqlari · zakazlar</span>
+  <span class="spacer"></span>
+  <a class="back" href="../index.html">← orqaga</a>
+</header>
+
+<div class="kpis" id="kpis"></div>
+<div class="chips" id="chips"></div>
+
+<div class="tablewrap">
+  <table class="books">
+    <thead>
+      <tr>
+        <th class="stick">Filial</th>
+        <th>A1</th><th>A2</th><th>B1</th><th>B1+</th>
+        <th>Novice</th><th>IELTS Std</th><th>Copybook</th>
+        <th>Jami</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+<p class="note">Katak: <b>qoldiq</b> / <span style="color:var(--amber)">zakazda</span>. Jadval yon tomonga suriladi.</p>
+
+<h2>Oxirgi zakazlar</h2>
+<div class="orders" id="orders"></div>
+<p class="note" id="upd"></p>
+
+<script>
+const API = "https://maintenance-production-d87e.up.railway.app/api/books";
+const LEVELS = ["A1","A2","B1","B1+","Novice","IELTS Standard","Copybook"];
+let DATA = [], ORDERS = [];
+
+const sum = a => a.reduce((x,y)=>x+y,0);
+const fmt = n => (n||0).toLocaleString("ru-RU");
+const ST = {"zakaz berildi":"yangi","qabul qilindi":"qabul qilindi","bekor qilindi":"bekor"};
+
+function kpis(){
+  const stock = sum(DATA.flatMap(d=>d.stock));
+  const ord   = sum(DATA.flatMap(d=>d.ordered));
+  const open  = ORDERS.filter(o=>o.status==="zakaz berildi").length;
+  document.getElementById("kpis").innerHTML = [
+    ["Omborda", fmt(stock)],
+    ["Zakazda", fmt(ord)],
+    ["Ochiq zakaz", open],
+    ["Filial", DATA.length]
+  ].map(([k,v])=>`<div class="kpi"><span>${k}</span><b>${v}</b></div>`).join("");
+}
+
+function rows(filter){
+  const list = filter==="all" ? DATA : DATA.filter(d=>d.branch===filter);
+  document.getElementById("rows").innerHTML = list.map(d=>{
+    const cells = d.stock.map((s,i)=>{
+      const o = d.ordered[i] || 0;
+      return `<td><span class="${s===0?'zero':''}">${s}</span><i class="ord">/${o}</i></td>`;
+    }).join("");
+    return `<tr><th class="stick">${d.branch}</th>${cells}<td class="tot">${sum(d.stock)}</td></tr>`;
+  }).join("");
+}
+
+function chips(){
+  const all = ["all", ...DATA.map(d=>d.branch)];
+  document.getElementById("chips").innerHTML = all.map((b,i)=>
+    `<button class="chip${i===0?' on':''}" data-b="${b}">${b==="all"?"Barchasi":b}</button>`
+  ).join("");
+  document.querySelectorAll(".chip").forEach(btn=>btn.onclick=()=>{
+    document.querySelectorAll(".chip").forEach(b=>b.classList.remove("on"));
+    btn.classList.add("on");
+    rows(btn.dataset.b);
+  });
+}
+
+function orders(){
+  const el = document.getElementById("orders");
+  if(!ORDERS.length){ el.innerHTML = `<div class="note">Hozircha zakaz yo‘q.</div>`; return; }
+  el.innerHTML = ORDERS.slice(0,8).map(o=>{
+    const items = o.items.map(i=>`${i.level} ×${i.qty}`).join(", ");
+    const st = ST[o.status] || o.status;
+    const cls = st==="yangi" ? "new" : st==="qabul qilindi" ? "done" : "";
+    return `<div class="order">
+      <div class="od-top"><b>${o.branch}</b><span class="st ${cls}">${st}</span></div>
+      <div class="od-items">${items}</div>
+      <div class="od-date">${o.created_at}</div>
+    </div>`;
+  }).join("");
+}
+
+async function load(){
+  try{
+    const r = await tgFetch(API, {cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    DATA = j.branches.map(b=>({
+      branch: b,
+      stock: LEVELS.map(lv => (j.stock[b] && j.stock[b][lv]) || 0),
+      ordered: LEVELS.map(lv => j.orders.filter(o=>o.status==="zakaz berildi" && o.branch===b)
+                    .flatMap(o=>o.items).filter(i=>i.level===lv)
+                    .reduce((s,i)=>s+Number(i.qty),0))
+    }));
+    ORDERS = j.orders || [];
+    document.getElementById("upd").textContent = j.updated_at ? "yangilandi: " + j.updated_at : "";
+    kpis(); chips(); rows("all"); orders();
+  }catch(e){
+    document.getElementById("orders").innerHTML =
+      `<div class="note">Baza bilan aloqa yo‘q (${e.message}).</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
