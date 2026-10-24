@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reyting — TMT</title>
+<link rel="stylesheet" href="../style.css?v=1">
+<script src="../assets/telegram-web-app.js"></script>
+<script src="../assets/tg.js?v=2"></script>
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+  .back{color:var(--dim);text-decoration:none;font-size:14px}
+  h1{font-size:20px;margin:12px 0 4px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--tx);
+    border-radius:12px;padding:10px;font-size:13px;font-family:inherit}
+  .tabs button.on{background:var(--ok);color:#08110c;border-color:var(--ok);font-weight:600}
+  .it{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;
+    margin-bottom:8px;display:flex;align-items:center;gap:12px}
+  .rk{font-size:15px;font-weight:700;width:26px;text-align:center;color:var(--dim)}
+  .it.top .rk{font-size:18px}
+  .tx{flex:1;min-width:0}
+  .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dt{font-size:12px;color:var(--dim);margin-top:3px}
+  .sc{text-align:right}
+  .sc b{font-size:16px;color:var(--ok)}
+  .sc i{display:block;font-style:normal;font-size:11px;color:var(--dim)}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:20px 0}
+  .legend{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
+  <h1>Reyting</h1>
+  <p class="sub" id="who">yuklanmoqda…</p>
+
+  <div class="tabs">
+    <button data-p="today" class="on">Bugun</button>
+    <button data-p="week">Hafta</button>
+    <button data-p="month">Oy</button>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="legend">
+    Ball: xona 5 + har rasm 1 + yopilgan vazifa 15 + muddatida 5 · kechikkan vazifa −3
+  </div>
+</div>
+
+<script>
+var period = "today";
+
+document.querySelectorAll(".tabs button").forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll(".tabs button").forEach(function(x){ x.classList.remove("on"); });
+    b.classList.add("on");
+    period = b.getAttribute("data-p");
+    load();
+  };
+});
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+}); }
+
+function load(){
+  var L = document.getElementById("list");
+  L.innerHTML = '<div class="empty">yuklanmoqda…</div>';
+  tgFetch("/api/tmt/ranking?period=" + encodeURIComponent(period))
+    .then(function(j){
+      var rows = (j && j.rows) || [];
+      var sc = (j && j.scope) || [];
+      document.getElementById("who").textContent =
+        rows.length + " xodim · " + (sc.length ? sc.join(", ") : "filial yo‘q");
+      if (!rows.length){ L.innerHTML = '<div class="empty">ma’lumot yo‘q</div>'; return; }
+      L.innerHTML = rows.map(function(r){
+        var medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank;
+        var d = [];
+        if (r.rooms_done) d.push(r.rooms_done + " xona");
+        if (r.photos) d.push(r.photos + " rasm");
+        if (r.tasks_done) d.push(r.tasks_done + " vazifa");
+        if (r.overdue) d.push(r.overdue + " kechikkan");
+        return '<div class="it' + (r.rank <= 3 ? ' top' : '') + '">'
+          + '<div class="rk">' + medal + '</div>'
+          + '<div class="tx"><div class="nm">' + esc(r.name) + '</div>'
+          + '<div class="dt">' + esc(r.branch || "—") + (d.length ? " · " + d.join(" · ") : " · hali harakat yo‘q") + '</div></div>'
+          + '<div class="sc"><b>' + r.score + '</b><i>ball</i></div></div>';
+      }).join("");
+    })
+    .catch(function(e){ L.innerHTML = '<div class="empty">Xato: ' + esc(e.message) + '</div>'; });
+}
+
+tgReady(function(d){
+  if (!d){ document.getElementById("list").innerHTML =
+    '<div class="empty">initData yo‘q — «Ilova» tugmasidan qayta oching</div>'; return; }
+  load();
+});
+</script>
+</body>
+</html>
