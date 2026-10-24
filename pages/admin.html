@@ -49,8 +49,10 @@
     background:transparent;color:inherit;font-size:14px;font-family:inherit}
   .wrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .wt{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
-  .wsv{padding:8px 12px;border-radius:9px;border:0;background:var(--acc);color:#000;font-size:13px;font-weight:600}
+  .wsv{padding:8px 14px;border-radius:9px;border:1px solid rgba(126,240,184,.35);background:rgba(126,240,184,.14);color:var(--ok);font-size:13px;font-weight:600;font-family:inherit}
   .wmsg{font-size:12px;margin-top:6px;color:var(--dim)}
+.wr.off .wic{opacity:.45}
+.wic input[type=time]:disabled{opacity:.6}
 </style>
 <link rel="stylesheet" href="../assets/ui.css?v=24">
 </head>
@@ -252,9 +254,10 @@ function loadWindows(){
         '<div class="wn"><span>' + esc(w.branch) + '</span><span class="ws ' + kls + '">' + st + '</span></div>' +
         '<div class="wic"><input type="time" class="t1" value="' + esc(w.start) + '"><span>–</span>' +
         '<input type="time" class="t2" value="' + esc(w.end) + '"></div>' +
-        '<div class="wrow"><label class="wt"><input type="checkbox" class="on2"' +
-        (w.enabled ? ' checked' : '') + '> cheklov yoniq</label>' +
-        (w.can_edit ? '<button class="wsv">Saqlash</button>' : '<span class="ws">faqat menejer</span>') +
+        '<div class="wrow">' + (w.can_edit
+          ? '<label class="wt"><input type="checkbox" class="on2"' + (w.enabled ? ' checked' : '') +
+            '> cheklov yoniq</label><button class="wsv">Saqlash</button>'
+          : '<span class="ws">faqat menejer o\u2018zgartiradi</span>') +
         '</div>' +
         '<div class="wmsg">' + (w.enabled
             ? ("bugun " + esc(w.start) + "–" + esc(w.end) + " · hozir " + esc(w.now))
@@ -262,8 +265,12 @@ function loadWindows(){
       '</div>';
     }).join("");
     Array.prototype.forEach.call(el.querySelectorAll(".wr"), function(row){
-      var btn = row.querySelector(".wsv");
-      if (btn) btn.onclick = function(){ saveWin(parseInt(row.getAttribute("data-i"), 10), row); };
+      var btn = row.querySelector(".wsv"); if (!btn) return;
+      var on = row.querySelector(".on2");
+      function sync(){ row.querySelector(".t1").disabled = !on.checked; row.querySelector(".t2").disabled = !on.checked;
+                       row.classList.toggle("off", !on.checked); }
+      on.onchange = sync; sync();
+      btn.onclick = function(){ saveWin(parseInt(row.getAttribute("data-i"),10), row); };
     });
   }).catch(function(){
     document.getElementById("wins").innerHTML = '<div class="empty">tarmoq xatosi</div>';

@@ -34,7 +34,8 @@
   .row button{flex:1;border:0;border-radius:12px;padding:12px;font-size:14px;font-weight:600;font-family:inherit}
   .snap{background:var(--ok);color:#08110c}
   .ghost{background:#1b2229;color:var(--tx);border:1px solid var(--line)}
-  .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
+  .st{font-size:13px;color:var(--dim);min-height:0;margin:2px 0 8px}
+  .st:empty{display:none}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
   .cnt{font-size:13px;color:var(--dim);margin-top:6px}
   .empty{color:var(--dim);font-size:14px;text-align:center;padding:24px 0}
@@ -56,14 +57,14 @@
 <div id="sheet">
   <div class="in">
     <h2 id="sTitle">Xona</h2>
+    <div class="cnt" id="sCnt">—</div>
+    <div class="st" id="sSt"></div>
     <video id="cam" autoplay playsinline muted></video>
-    <div class="cnt" id="sCnt"></div>
     <div class="row">
       <button class="snap" id="bSnap">📸 Rasm olish</button>
       <button class="ghost" id="bClose">Yopish</button>
     </div>
     <button id="bReset" style="display:none">↻ Qayta tekshiruvga ochish</button>
-    <div class="st" id="sSt"></div>
   </div>
 </div>
 
@@ -100,12 +101,13 @@ function render(branches){
       wline(b.branch) +
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
       '<div class="grid">' + b.rooms.map(function(r){
+        var dn = (r.done === undefined) ? ((r.photos||0) >= (r.need||need)) : !!r.done;
         RM[r.id] = {id:r.id, name:r.name, branch:b.branch, photos:r.photos||0,
-                    done:!!r.done, reopened:!!r.reopened};
-        var cls = r.done ? "done" : ((r.photos || r.reopened) ? "part" : "");
-        var info = r.done ? "✓ bajarildi"
+                    done:dn, reopened:!!r.reopened};
+        var cls = dn ? "done" : ((r.photos || r.reopened) ? "part" : "");
+        var info = dn ? "✓ bajarildi"
                  : r.reopened ? "↻ qayta ochilgan"
-                 : (r.photos ? r.photos+"/"+r.need : "—");
+                 : (r.photos ? r.photos+"/"+(r.need||need) : "—");
         return '<button class="rm '+cls+'" onclick="openRoom('+r.id+')"><b>'+esc(r.name)+'</b><i>'+info+'</i></button>';
       }).join("") + '</div></div>';
   }).join("");
@@ -132,7 +134,8 @@ function openRoom(id){
   $("sCnt").textContent = r.done ? "✅ allaqachon bajarilgan" : "Rasmlar: " + r.photos + "/" + need;
   $("bReset").style.display = (canManage && (r.done || r.photos || r.reopened)) ? "block" : "none";
   $("cam").style.display = curOpen ? "" : "none";
-  $("bSnap").disabled = !curOpen;
+  $("bSnap").style.display = curOpen ? "" : "none";
+  $("bClose").style.flex = curOpen ? "" : "1";
   say("");
   $("sheet").classList.add("on");
   if (!curOpen){

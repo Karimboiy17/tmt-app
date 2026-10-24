@@ -19,10 +19,16 @@
       top:[{name:"Xushnud Amirkulov",score:20},{name:"Karimboy Xolmirzayev",score:14},{name:"Sardor",score:4}],
       can_send:true},
     attendance:{ok:true,state:"in",t_in:"08:52",t_out:null},
-    rooms:{ok:true,manager:true,branch:null,branches:[
+    checkwin:{ok:true,windows:[
+      {branch:"Chilonzor",enabled:true,start:"09:00",end:"10:00",open:false,left:null,min:60,now:"11:20",can_edit:true},
+      {branch:"Yunusobod",enabled:false,start:"00:00",end:"23:59",open:true,left:null,min:1440,now:"11:20",can_edit:true}]},
+    rooms:{ok:true,manager:true,branch:null,can_manage:true,need:2,
+      windows:{Chilonzor:{branch:"Chilonzor",enabled:true,start:"09:00",end:"10:00",open:false,left:null,min:60,now:"11:20"},
+               Yunusobod:{branch:"Yunusobod",enabled:false,start:"00:00",end:"23:59",open:true,left:null,min:1440,now:"11:20"}},
+      branches:[
       {branch:"Chilonzor",total:6,done:2,rooms:[
         {id:1,name:"101 — Direktor xonasi",photos:2,need:2},{id:2,name:"102 — O'quv xonasi",photos:2,need:2},
-        {id:3,name:"201 — IELTS guruhi",photos:0,need:2},{id:4,name:"202 — Kutubxona",photos:1,need:2},
+        {id:3,name:"201 — IELTS guruhi",photos:0,need:2,reopened:true},{id:4,name:"202 — Kutubxona",photos:1,need:2},
         {id:5,name:"301 — Majlis zali",photos:0,need:2},{id:6,name:"WC — 2-qavat",photos:2,need:2}]},
       {branch:"Yunusobod",total:4,done:3,rooms:[
         {id:7,name:"101 — Qabul",photos:2,need:2},{id:8,name:"102 — A1 guruhi",photos:2,need:2},
@@ -62,6 +68,7 @@
     if(u.indexOf("/coordinators")>=0) return MOCK.coordinators;
     if(u.indexOf("/attendance")>=0) return MOCK.attendance;
     if(u.indexOf("/books")>=0) return MOCK.books;
+    if(u.indexOf("/check-window")>=0) return MOCK.checkwin;
     if(u.indexOf("/rooms/photos")>=0) return MOCK.photos;
     if(u.indexOf("/rooms")>=0) return MOCK.rooms;
     if(u.indexOf("/report")>=0) return MOCK.report;
