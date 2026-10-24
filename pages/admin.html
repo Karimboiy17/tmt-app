@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Admin</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .card2{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+  .card2 h3{margin:0 0 10px;font-size:13px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .br{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .br:last-child{border:0}
+  .br .nm{font-size:14px;font-weight:600}
+  .br .mt{font-size:12px;color:var(--dim);margin-top:2px}
+  .br .rt{font-size:13px;color:var(--dim);white-space:nowrap}
+  .bar{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--acc)}
+  input.q{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font-size:14px;margin-bottom:10px}
+  .st{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .st:last-child{border:0}
+  .st .av{width:28px;height:28px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:12px}
+  .st .nm{flex:1;font-size:14px}
+  .st .nm i{display:block;font-size:11px;color:var(--dim);font-style:normal;margin-top:1px}
+  .tag{font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--line);color:var(--dim)}
+  .tag.c{color:var(--acc);border-color:var(--acc)}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:18px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <a class="back" href="../index.html">‹</a>
+    <div><div class="ttl">🛠 Admin</div><div class="sub" id="who">—</div></div>
+  </div>
+
+  <div class="card2"><h3>Filiallar</h3><div id="brs"></div></div>
+  <div class="card2"><h3>Koordinatorlar</h3><div id="coords"></div></div>
+  <div class="card2">
+    <h3>Xodimlar</h3>
+    <input class="q" id="q" placeholder="ism yoki filial bo‘yicha qidirish">
+    <div id="staff"></div>
+  </div>
+</div>
+
+<script src="../assets/tg.js?v=3"></script>
+<script>
+var DATA = {staff: []};
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+}); }
+
+function initials(n){
+  var p = String(n || "?").trim().split(/\s+/);
+  return esc((p[0] || "?")[0] + (p[1] ? p[1][0] : ""));
+}
+
+function renderStaff(){
+  var q = (document.getElementById("q").value || "").toLowerCase().trim();
+  var list = DATA.staff.filter(function(s){
+    return !q || String(s.name).toLowerCase().indexOf(q) >= 0 ||
+           String(s.branch).toLowerCase().indexOf(q) >= 0;
+  });
+  var el = document.getElementById("staff");
+  if (!list.length){ el.innerHTML = '<div class="empty">topilmadi</div>'; return; }
+  el.innerHTML = list.map(function(s){
+    return '<div class="st"><div class="av">' + initials(s.name) + '</div>' +
+      '<div class="nm">' + esc(s.name) + '<i>' + esc(s.branch || "—") + ' · ' + esc(s.role || "xodim") + '</i></div>' +
+      '<span class="tag">' + esc(s.status) + '</span></div>';
+  }).join("");
+}
+
+function load(){
+  tgJson("/api/tmt/admin").then(function(j){
+    if (!j || !j.ok){ document.getElementById("who").textContent = (j && j.error) || "xato"; return; }
+    document.getElementById("who").textContent =
+      j.staff.length + " xodim · " + j.branches.length + " filial" + (j.is_owner ? " · ega" : "");
+    DATA.staff = j.staff || [];
+    renderStaff();
+
+    document.getElementById("brs").innerHTML = (j.branches || []).map(function(b){
+      var pct = b.rooms ? Math.round(b.done / b.rooms * 100) : 0;
+      return '<div class="br"><div style="flex:1"><div class="nm">' + esc(b.name) + '</div>' +
+        '<div class="mt">' + b.staff + ' xodim · bugun ' + b.done + '/' + b.rooms + ' xona</div>' +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' +
+        '<div class="rt">' + pct + '%</div></div>';
+    }).join("") || '<div class="empty">filial yo‘q</div>';
+
+    var cs = j.coordinators || [];
+    document.getElementById("coords").innerHTML = cs.length ? cs.map(function(c){
+      return '<div class="br"><div style="flex:1"><div class="nm">' + esc(c.name) + '</div>' +
+        '<div class="mt">' + esc(c.branch) + '</div></div>' +
+        '<span class="tag c">koordinator</span></div>';
+    }).join("") : '<div class="empty">koordinator biriktirilmagan</div>';
+  }).catch(function(e){
+    document.getElementById("who").textContent = "tarmoq xatosi";
+  });
+}
+
+document.getElementById("q").oninput = renderStaff;
+tgReady(load);
+</script>
+</body>
+</html>
