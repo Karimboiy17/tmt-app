@@ -33,6 +33,17 @@
              Yunusobod:{A1:10,A2:8,"B1":5,"B1+":2,Novice:4,"IELTS Standard":7,Copybook:12}},
       orders:[{id:7,status:"zakaz berildi",branch:"Chilonzor",created_at:"23.10.2026",
         items:[{level:"A1",qty:10},{level:"Copybook",qty:20}]}]},
+    photos:{ok:true,date:"2026-10-25",branch:"Chilonzor",manager:true,can_manage:true,
+      scope:["Chilonzor","Yunusobod"],branches:["Chilonzor","Yunusobod"],
+      checked:3,total:4,photos:7,rooms:[
+        {branch:"Chilonzor",room:"101 — Direktor xonasi",worker:"Xushnud Amirkulov",cid:6147423013,photos:2,done:true,
+         files:[{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(70,58,86)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph1"},{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(52,80,74)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph2"}]},
+        {branch:"Chilonzor",room:"102 — O'quv xonasi",worker:"Karimboy Xolmirzayev",cid:1054482233,photos:3,done:true,
+         files:[{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(84,70,52)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph3"},{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(58,66,92)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph4"},{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(80,56,62)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph5"}]},
+        {branch:"Chilonzor",room:"201 — IELTS guruhi",worker:"Aziz Karimov",cid:999,photos:2,done:true,
+         files:[{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(48,74,86)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph6"},{url:"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='rgb(64,72,84)'/><circle cx='150' cy='128' r='42' fill='rgb(196,204,216)' opacity='0.55'/><rect x='70' y='196' width='160' height='16' rx='8' fill='rgb(196,204,216)' opacity='0.28'/></svg>",id:"ph7"}]},
+        {branch:"Chilonzor",room:"202 — Kutubxona",worker:"Aziz Karimov",cid:999,photos:0,done:false,files:[]}
+      ]},
     coordinators:{ok:true,branches:["Chilonzor","Yunusobod","Mirzo Ulug'bek"],
       staff:[{cid:1054482233,name:"Karimboy Xolmirzayev",branch:"Chilonzor"},
              {cid:6147423013,name:"Xushnud Amirkulov",branch:"Yunusobod"},
@@ -51,6 +62,7 @@
     if(u.indexOf("/coordinators")>=0) return MOCK.coordinators;
     if(u.indexOf("/attendance")>=0) return MOCK.attendance;
     if(u.indexOf("/books")>=0) return MOCK.books;
+    if(u.indexOf("/rooms/photos")>=0) return MOCK.photos;
     if(u.indexOf("/rooms")>=0) return MOCK.rooms;
     if(u.indexOf("/report")>=0) return MOCK.report;
     if(u.indexOf("/api/webapp/me")>=0) return MOCK.me;

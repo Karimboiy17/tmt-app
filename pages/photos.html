@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Xona rasmlari — TMT</title>
+<link rel="stylesheet" href="../style.css?v=23">
+<script src="../assets/telegram-web-app.js"></script>
+<script src="../assets/tg.js?v=5"></script>
+<link rel="stylesheet" href="../assets/ui.css?v=24">
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+  .dt{display:flex;align-items:center;gap:8px;margin:10px 0 6px}
+  .dt input[type=date]{
+    flex:1;background:var(--card2,#1b2229);color:var(--tx,#fff);border:1px solid var(--line,#2a3138);
+    border-radius:12px;padding:10px 12px;font:inherit;font-size:14px;color-scheme:dark}
+  .rc{padding:0 !important}
+  .rc .hd{display:flex;align-items:center;gap:10px;padding:14px 15px 10px}
+  .rc .hd b{font-size:15px;letter-spacing:-.2px}
+  .rc .hd .tag{margin-left:auto}
+  .rc .wr{padding:0 15px 12px;color:var(--dim);font-size:12.5px}
+  .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 15px 15px}
+  .thumbs .ph{
+    position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;border:1px solid var(--line,#2a3138);
+    background:#0e1319;padding:0;display:block;width:100%;cursor:pointer}
+  .thumbs .ph img,.thumbs .ph video{width:100%;height:100%;object-fit:cover;display:block}
+  .thumbs .ph i{position:absolute;inset:auto 0 0 0;font-style:normal;font-size:10px;padding:3px 5px;
+    background:linear-gradient(transparent,#000a);color:#e8ecf1;text-align:center}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:34px 10px;line-height:1.6}
+  #lb{position:fixed;inset:0;background:#000e;display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+  #lb.on{display:flex}
+  #lb img,#lb video{max-width:100%;max-height:88vh;border-radius:14px;display:block}
+  #lb .x{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:0;
+    background:#ffffff1f;color:#fff;font-size:18px;font-family:inherit;backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
+  <div class="ttl">Xona rasmlari</div>
+  <div class="sub" id="who">yuklanmoqda…</div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="dt">
+    <input type="date" id="dpick">
+  </div>
+  <div class="chips" id="days"></div>
+  <div class="chips" id="brs"></div>
+
+  <div id="list"></div>
+</div>
+
+<div id="lb">
+  <button class="x" id="lbx">✕</button>
+  <div id="lbbody"></div>
+</div>
+
+<script>
+var API = "https://maintenance-production-d87e.up.railway.app";
+var EP  = API + "/api/tmt/rooms/photos";
+var DATE = todayISO(), BRANCH = "", LOADING = false, DAYS = [];
+
+function todayISO(){
+  var d = new Date();
+  var p = function(n){ return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function shiftISO(iso, delta){
+  var a = iso.split("-").map(Number);
+  var d = new Date(a[0], a[1] - 1, a[2] + delta);
+  var p = function(n){ return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function nice(iso){
+  var a = iso.split("-");
+  return a[2] + "." + a[1] + "." + a[0];
+}
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function $(id){ return document.getElementById(id); }
+function media(u){ return (/^(data:|https?:\/\/)/.test(u)) ? u : API + u; }
+
+function drawDays(){
+  var html = "";
+  for (var i = 0; i < 5; i++){
+    var iso = shiftISO(todayISO(), -i);
+    var label = i === 0 ? "Bugun" : i === 1 ? "Kecha" : nice(iso).slice(0, 5);
+    html += '<button class="chip' + (iso === DATE ? " on" : "") + '" data-d="' + iso + '">' + label + "</button>";
+  }
+  $("days").innerHTML = html;
+  $("days").querySelectorAll(".chip").forEach(function(b){
+    b.onclick = function(){ DATE = b.dataset.d; $("dpick").value = DATE; drawDays(); load(); };
+  });
+}
+function drawBranches(list){
+  if (BRANCH && list.indexOf(BRANCH) < 0) BRANCH = "";
+  var html = "";
+  if (list.length > 1){
+    html += '<button class="chip' + (BRANCH === "" ? " on" : "") + '" data-b="">Barchasi</button>';
+  } else if (list.length === 1 && !BRANCH){
+    BRANCH = list[0];
+  }
+  html += list.map(function(b){
+    return '<button class="chip' + (b === BRANCH ? " on" : "") + '" data-b="' + esc(b) + '">' + esc(b) + "</button>";
+  }).join("");
+  $("brs").innerHTML = html;
+  $("brs").querySelectorAll(".chip").forEach(function(b){
+    b.onclick = function(){ BRANCH = b.dataset.b; drawBranches(list); load(); };
+  });
+}
+
+function kpis(j){
+  var t = j.total || 0, c = j.checked || 0;
+  $("kpis").innerHTML =
+    '<div class="kpi"><b>' + c + "/" + t + '</b><span>tekshirilgan xona</span></div>' +
+    '<div class="kpi"><b>' + (j.photos || 0) + '</b><span>rasm · video</span></div>';
+}
+
+function roomCard(r){
+  var thumbs = r.files.map(function(f, i){
+    return '<button class="ph" data-u="' + esc(f.url) + '" data-i="' + i + '">' +
+           '<img loading="lazy" src="' + esc(media(f.url)) + '" alt="rasm ' + (i + 1) + '">' +
+           '<i>' + (i + 1) + "</i></button>";
+  }).join("");
+  return '<div class="card2 rc">' +
+    '<div class="hd"><b>' + esc(r.room) + "</b>" +
+      '<span class="tag ' + (r.done ? "ok" : "warn") + '">' + (r.done ? "✓ bajarildi" : "ochiq") + "</span></div>" +
+    '<div class="wr">' + esc(r.worker || "—") + " · " + (r.photos || 0) + " rasm</div>" +
+    (r.files.length ? '<div class="thumbs">' + thumbs + "</div>"
+                    : '<div class="wr">rasm yuklanmagan</div>') +
+  "</div>";
+}
+
+function render(j){
+  kpis(j);
+  $("who").textContent = (j.branch || "barcha filial") + " · " + nice(j.date) + " · " + (j.rooms || []).length + " xona";
+  var list = j.rooms || [];
+  if (!list.length){
+    $("list").innerHTML = '<div class="empty">Bu kunda xona tekshiruvi yo‘q.<br>Boshqa sana yoki filialni tanlang.</div>';
+    return;
+  }
+  $("list").innerHTML = list.map(roomCard).join("");
+  $("list").querySelectorAll(".ph").forEach(function(b){
+    b.onclick = function(){ lightbox(media(b.dataset.u)); };
+  });
+}
+
+function lightbox(src){
+  $("lbbody").innerHTML = '<img src="' + esc(src) + '" alt="">';
+  var img = $("lbbody").querySelector("img");
+  img.onerror = function(){
+    $("lbbody").innerHTML = '<video src="' + esc(src) + '" controls autoplay playsinline></video>';
+  };
+  $("lb").classList.add("on");
+}
+$("lbx").onclick = function(){ $("lb").classList.remove("on"); $("lbbody").innerHTML = ""; };
+$("lb").onclick = function(e){ if (e.target.id === "lb") $("lbx").onclick(); };
+
+function load(){
+  if (LOADING) return;
+  LOADING = true;
+  $("list").innerHTML = '<div class="empty">yuklanmoqda…</div>';
+  var url = EP + "?date=" + encodeURIComponent(DATE) + (BRANCH ? "&branch=" + encodeURIComponent(BRANCH) : "");
+  tgJson(url).then(function(j){
+    LOADING = false;
+    if (!j.ok){
+      $("list").innerHTML = '<div class="empty">Xato: ' + esc(j.error || j._status || "—") + "</div>";
+      return;
+    }
+    drawBranches(j.branches || []);
+    render(j);
+  }).catch(function(e){
+    LOADING = false;
+    $("list").innerHTML = '<div class="empty">Aloqa yo‘q (' + esc(e.message) + ")</div>";
+  });
+}
+
+$("dpick").value = DATE;
+$("dpick").onchange = function(){ DATE = $("dpick").value || todayISO(); drawDays(); load(); };
+drawDays();
+load();
+</script>
+</body>
+</html>
