@@ -6,7 +6,7 @@
 <title>Koordinatorlar — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js"></script>
+<script src="../assets/tg.js?v=2"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -148,7 +148,10 @@ function del(cid){
     .catch(function(e){ alert("Xato: "+e.message); });
 }
 
-load();
+tgReady(function(d){
+  if (!d){ $("coords").innerHTML = '<div class="empty">initData yo\'q — «Ilova» tugmasidan qayta oching</div>'; return; }
+  load();
+});
 </script>
 </body>
 </html>
