@@ -28,6 +28,8 @@
   .sc i{display:block;font-style:normal;font-size:11px;color:var(--dim)}
   .empty{color:var(--dim);font-size:14px;text-align:center;padding:20px 0}
   .legend{font-size:11px;color:var(--dim);margin-top:12px;line-height:1.6}
+  .sec{font-size:13px;font-weight:600;margin:18px 0 8px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+  .sec i{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400;opacity:.8}
 </style>
 </head>
 <body>
@@ -42,10 +44,15 @@
     <button data-p="month">Oy</button>
   </div>
 
+  <h2 class="sec">Xodimlar</h2>
   <div id="list"></div>
 
+  <h2 class="sec">Koordinatorlar <i>filial natijasi bo‘yicha</i></h2>
+  <div id="coords"></div>
+
   <div class="legend">
-    Ball: xona 5 + har rasm 1 + yopilgan vazifa 15 + muddatida 5 · kechikkan vazifa −3
+    Xodim: xona 5 + har rasm 1 + yopilgan vazifa 15 + muddatida 5 · kechikkan −3<br>
+    Koordinator: filial xonalari bajarilishi × 50 + muddatida vazifa × 10 − kechikkan × 5
   </div>
 </div>
 
@@ -65,31 +72,55 @@ function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
 }); }
 
+function item(r, sub){
+  var medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank;
+  return '<div class="it' + (r.rank <= 3 ? ' top' : '') + '">'
+    + '<div class="rk">' + medal + '</div>'
+    + '<div class="tx"><div class="nm">' + esc(r.name) + '</div>'
+    + '<div class="dt">' + esc(sub) + '</div></div>'
+    + '<div class="sc"><b>' + r.score + '</b><i>ball</i></div></div>';
+}
+
 function load(){
   var L = document.getElementById("list");
+  var C = document.getElementById("coords");
   L.innerHTML = '<div class="empty">yuklanmoqda…</div>';
+  C.innerHTML = '<div class="empty">yuklanmoqda…</div>';
   tgFetch("/api/tmt/ranking?period=" + encodeURIComponent(period))
     .then(function(j){
       var rows = (j && j.rows) || [];
+      var coords = (j && j.coords) || [];
       var sc = (j && j.scope) || [];
       document.getElementById("who").textContent =
-        rows.length + " xodim · " + (sc.length ? sc.join(", ") : "filial yo‘q");
-      if (!rows.length){ L.innerHTML = '<div class="empty">ma’lumot yo‘q</div>'; return; }
-      L.innerHTML = rows.map(function(r){
-        var medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank;
-        var d = [];
-        if (r.rooms_done) d.push(r.rooms_done + " xona");
-        if (r.photos) d.push(r.photos + " rasm");
-        if (r.tasks_done) d.push(r.tasks_done + " vazifa");
-        if (r.overdue) d.push(r.overdue + " kechikkan");
-        return '<div class="it' + (r.rank <= 3 ? ' top' : '') + '">'
-          + '<div class="rk">' + medal + '</div>'
-          + '<div class="tx"><div class="nm">' + esc(r.name) + '</div>'
-          + '<div class="dt">' + esc(r.branch || "—") + (d.length ? " · " + d.join(" · ") : " · hali harakat yo‘q") + '</div></div>'
-          + '<div class="sc"><b>' + r.score + '</b><i>ball</i></div></div>';
-      }).join("");
+        rows.length + " xodim · " + coords.length + " koordinator · " + (sc.length ? sc.join(", ") : "filial yo‘q");
+
+      if (!rows.length){ L.innerHTML = '<div class="empty">ma’lumot yo‘q</div>'; }
+      else {
+        L.innerHTML = rows.map(function(r){
+          var d = [];
+          if (r.rooms_done) d.push(r.rooms_done + " xona");
+          if (r.photos) d.push(r.photos + " rasm");
+          if (r.tasks_done) d.push(r.tasks_done + " vazifa");
+          if (r.overdue) d.push(r.overdue + " kechikkan");
+          return item(r, (r.branch || "—") + (d.length ? " · " + d.join(" · ") : " · hali harakat yo‘q"));
+        }).join("");
+      }
+
+      if (!coords.length){ C.innerHTML = '<div class="empty">koordinator biriktirilmagan</div>'; }
+      else {
+        C.innerHTML = coords.map(function(r){
+          var d = [];
+          if (r.rooms_total) d.push(r.rooms_done + "/" + r.rooms_total + " xona");
+          if (r.ontime) d.push(r.ontime + " muddatida");
+          if (r.overdue) d.push(r.overdue + " kechikkan");
+          return item(r, (r.branches || []).join(", ") + (d.length ? " · " + d.join(" · ") : ""));
+        }).join("");
+      }
     })
-    .catch(function(e){ L.innerHTML = '<div class="empty">Xato: ' + esc(e.message) + '</div>'; });
+    .catch(function(e){
+      L.innerHTML = '<div class="empty">Xato: ' + esc(e.message) + '</div>';
+      C.innerHTML = "";
+    });
 }
 
 tgReady(function(d){
