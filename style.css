@@ -134,8 +134,7 @@ body.home .brand p{
 
 main.metro{
   display:grid;grid-template-columns:1fr 1fr;gap:8px;
-  perspective:1100px;perspective-origin:50% 40%;
-}
+  }
 /* flexible: 2 → 3 → 4 columns as the screen grows */
 @media (min-width:520px){
   body.home{max-width:760px;margin:0 auto;padding-inline:20px}
@@ -178,15 +177,10 @@ main.metro{
 }
 .metro .clock .d{font-size:12px;letter-spacing:.5px;color:var(--lime);opacity:.85}
 
-.metro .flip{
-  position:absolute;inset:0;transform-style:preserve-3d;
-  animation:flip var(--dur,14s) cubic-bezier(.5,0,.2,1) infinite;
-  animation-delay:var(--dl,0s);
-}
+.metro .flip{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
 .metro .face{
   position:absolute;inset:0;padding:14px 15px;
   display:flex;flex-direction:column;justify-content:space-between;
-  backface-visibility:hidden;-webkit-backface-visibility:hidden;
   overflow:hidden;
   background:
     radial-gradient(115% 85% at 12% -8%,rgba(255,255,255,.17) 0%,rgba(255,255,255,0) 46%),
@@ -196,13 +190,17 @@ main.metro{
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.12),
     inset 0 -12px 26px rgba(0,0,0,.34);
+  animation:frontOut var(--dur,14s) cubic-bezier(.4,0,.25,1) infinite;
+  animation-delay:var(--dl,0s);
+  will-change:transform;
 }
 .metro .face::after{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,0) 50%);
 }
 .metro .face.bk{
-  transform:rotateX(180deg);justify-content:center;gap:8px;
+  justify-content:center;gap:8px;transform:translateY(100%);
+  animation-name:backIn;
   background:
     radial-gradient(110% 90% at 50% -12%,rgba(231,238,97,.16) 0%,rgba(231,238,97,0) 58%),
     linear-gradient(168deg,#400d4f 0%,#220524 52%,#12020f 100%);
@@ -284,12 +282,15 @@ main.metro{
 .d7{--g1:#63dcff;--g2:#0a7fc4}
 .metro .lime{--g1:#3d0f38;--g2:#1a0316}
 
-@keyframes flip{
-  0%   {transform:rotateX(0deg)}
-  8%   {transform:rotateX(180deg)}
-  46%  {transform:rotateX(180deg)}
-  54%  {transform:rotateX(360deg)}
-  100% {transform:rotateX(360deg)}
+@keyframes frontOut{
+  0%,4%   {transform:translateY(0)}
+  10%,44% {transform:translateY(-102%)}
+  52%,100%{transform:translateY(0)}
+}
+@keyframes backIn{
+  0%,4%   {transform:translateY(102%)}
+  10%,44% {transform:translateY(0)}
+  52%,100%{transform:translateY(102%)}
 }
 
 .d0{--dl:0s}.d1{--dl:1.6s}.d2{--dl:3.2s}.d3{--dl:4.8s}
@@ -300,7 +301,8 @@ body.home footer{
 }
 
 @media (prefers-reduced-motion:reduce){
-  .metro .flip{animation:none}
+  .metro .face{animation:none}
+  .metro .face.bk{transform:translateY(102%)}
 }
 @media (max-width:340px){
   .metro .lb b{font-size:14px}
