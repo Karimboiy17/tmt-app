@@ -206,6 +206,13 @@ main.metro{
     linear-gradient(168deg,#400d4f 0%,#220524 52%,#12020f 100%);
 }
 .metro .face.bk::after{background:linear-gradient(200deg,rgba(231,238,97,.10),rgba(0,0,0,.30))}
+/* back face: logo only — no text, so nothing can read as reversed */
+.metro .face.bk .lb,.metro .face.bk .ar{display:none}
+.metro .face.bk::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:url("assets/logo.jpg") center/56% no-repeat;
+  opacity:.92;
+}
 
 /* Apple-style app-icon plates — squircle, gradient fill, white glyph */
 .metro .ic{
