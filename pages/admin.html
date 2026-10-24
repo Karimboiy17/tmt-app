@@ -24,6 +24,20 @@
   .tag{font-size:11px;padding:3px 7px;border-radius:6px;border:1px solid var(--line);color:var(--dim)}
   .tag.c{color:var(--acc);border-color:var(--acc)}
   .empty{color:var(--dim);font-size:14px;text-align:center;padding:18px 0}
+  .st{cursor:pointer}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:50}
+  .modal.on{display:flex}
+  .sheet{width:100%;background:var(--card);border-radius:16px 16px 0 0;padding:16px;max-height:88vh;overflow:auto}
+  .sheet h2{margin:0 0 3px;font-size:16px}
+  .sheet .sub2{color:var(--dim);font-size:12px;margin-bottom:12px}
+  .sheet .lb{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:8px 12px;border-radius:9px;border:1px solid var(--line);font-size:13px;background:transparent;color:inherit}
+  .chip.on{border-color:var(--acc);color:var(--acc)}
+  .chip.danger.on{border-color:#e35b5b;color:#e35b5b}
+  .sheet .save{width:100%;margin-top:16px;padding:12px;border-radius:11px;border:0;background:var(--acc);color:#000;font-size:15px;font-weight:600}
+  .sheet .close{float:right;background:none;border:0;color:var(--dim);font-size:20px;line-height:1}
+  .sheet .msg{font-size:13px;margin-top:10px;color:var(--dim)}
 </style>
 </head>
 <body>
@@ -39,6 +53,26 @@
     <h3>Xodimlar</h3>
     <input class="q" id="q" placeholder="ism yoki filial bo‘yicha qidirish">
     <div id="staff"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <button class="close" onclick="closeModal()">×</button>
+    <h2 id="mName">—</h2>
+    <div class="sub2" id="mSub">—</div>
+
+    <div class="lb">Rol</div>
+    <div class="chips" id="mRole"></div>
+
+    <div class="lb">Filial</div>
+    <div class="chips" id="mBranch"></div>
+
+    <div class="lb">Holat</div>
+    <div class="chips" id="mStatus"></div>
+
+    <button class="save" onclick="saveUser()">Saqlash</button>
+    <div class="msg" id="mMsg"></div>
   </div>
 </div>
 
@@ -64,10 +98,73 @@ function renderStaff(){
   var el = document.getElementById("staff");
   if (!list.length){ el.innerHTML = '<div class="empty">topilmadi</div>'; return; }
   el.innerHTML = list.map(function(s){
-    return '<div class="st"><div class="av">' + initials(s.name) + '</div>' +
+    return '<div class="st" data-cid="' + s.cid + '"><div class="av">' + initials(s.name) + '</div>' +
       '<div class="nm">' + esc(s.name) + '<i>' + esc(s.branch || "—") + ' · ' + esc(s.role || "xodim") + '</i></div>' +
       '<span class="tag">' + esc(s.status) + '</span></div>';
   }).join("");
+  if (OWNER){
+    Array.prototype.forEach.call(el.querySelectorAll(".st"), function(n){
+      n.onclick = function(){ openUser(parseInt(n.getAttribute("data-cid"), 10)); };
+    });
+  }
+}
+
+var SEL = {cid: 0, role: "", branch: "", status: "active"};
+var OWNER = false;
+var BRANCH_LIST = [];
+
+function chipRow(id, opts, key){
+  document.getElementById(id).innerHTML = opts.map(function(o){
+    var on = SEL[key] === o.v ? " on" : "";
+    var dg = o.d ? " danger" : "";
+    return '<button class="chip' + on + dg + '" data-v="' + esc(o.v) + '">' + esc(o.t) + '</button>';
+  }).join("");
+  Array.prototype.forEach.call(document.getElementById(id).querySelectorAll(".chip"), function(b){
+    b.onclick = function(){ SEL[key] = b.getAttribute("data-v"); drawChips(); };
+  });
+}
+
+function drawChips(){
+  chipRow("mRole", [
+    {v:"worker", t:"Xodim (worker)"},
+    {v:"staff", t:"Staff"},
+    {v:"manager", t:"Menejer"}
+  ], "role");
+  var bs = BRANCH_LIST.map(function(b){ return {v:b, t:b}; });
+  bs.push({v:"—", t:"—"});
+  chipRow("mBranch", bs, "branch");
+  chipRow("mStatus", [
+    {v:"active", t:"Faol"},
+    {v:"blocked", t:"Bloklangan", d:true}
+  ], "status");
+}
+
+function openUser(cid){
+  if (!OWNER) return;
+  var s = DATA.staff.filter(function(x){ return x.cid === cid; })[0];
+  if (!s) return;
+  SEL = {cid: cid, role: s.role || "worker", branch: s.branch || "—",
+         status: (String(s.status).toLowerCase() === "blocked" || String(s.status).toLowerCase() === "bloklangan") ? "blocked" : "active"};
+  document.getElementById("mName").textContent = s.name;
+  document.getElementById("mSub").textContent = (s.branch || "—") + " · " + (s.role || "xodim") + " · id " + s.cid;
+  document.getElementById("mMsg").textContent = "";
+  drawChips();
+  document.getElementById("modal").classList.add("on");
+}
+
+function closeModal(){ document.getElementById("modal").classList.remove("on"); }
+
+function saveUser(){
+  var msg = document.getElementById("mMsg");
+  msg.textContent = "saqlanmoqda…";
+  tgJson("/api/tmt/admin/user", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cid: SEL.cid, role: SEL.role, branch: SEL.branch, status: SEL.status})
+  }).then(function(j){
+    if (j && j.ok){ msg.textContent = "saqlandi ✓"; setTimeout(function(){ closeModal(); load(); }, 600); }
+    else { msg.textContent = (j && j.error) || "xato"; }
+  }).catch(function(){ msg.textContent = "tarmoq xatosi"; });
 }
 
 function load(){
@@ -76,6 +173,8 @@ function load(){
     document.getElementById("who").textContent =
       j.staff.length + " xodim · " + j.branches.length + " filial" + (j.is_owner ? " · ega" : "");
     DATA.staff = j.staff || [];
+    OWNER = !!j.is_owner;
+    BRANCH_LIST = (j.branches || []).map(function(b){ return b.name; });
     renderStaff();
 
     document.getElementById("brs").innerHTML = (j.branches || []).map(function(b){
