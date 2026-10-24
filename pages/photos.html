@@ -162,6 +162,10 @@ $("lb").onclick = function(e){ if (e.target.id === "lb") $("lbx").onclick(); };
 
 function load(){
   if (LOADING) return;
+  if (window.tgHasInit && !window.tgHasInit()){
+    $("list").innerHTML = '<div class="empty">Telegram ma\'lumot yo\u2018q — ilovani botdagi <b>Ilova</b> tugmasidan oching.</div>';
+    return;
+  }
   LOADING = true;
   $("list").innerHTML = '<div class="empty">yuklanmoqda…</div>';
   var url = EP + "?date=" + encodeURIComponent(DATE) + (BRANCH ? "&branch=" + encodeURIComponent(BRANCH) : "");
@@ -186,7 +190,8 @@ function load(){
 $("dpick").value = DATE;
 $("dpick").onchange = function(){ DATE = $("dpick").value || todayISO(); drawDays(); load(); };
 drawDays();
-if (window.tgReady) window.tgReady(function(){ load(); }); else load();
+load();
+if (window.tgReady) window.tgReady(function(){ if (window.tgHasInit && window.tgHasInit()) load(); });
 </script>
 </body>
 </html>
