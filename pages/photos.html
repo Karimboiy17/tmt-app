@@ -163,6 +163,7 @@ $("lb").onclick = function(e){ if (e.target.id === "lb") $("lbx").onclick(); };
 function load(){
   if (LOADING) return;
   if (window.tgHasInit && !window.tgHasInit()){
+    $("who").textContent = "filial · sana · xona";
     $("list").innerHTML = '<div class="empty">Telegram ma\'lumot yo\u2018q — ilovani botdagi <b>Ilova</b> tugmasidan oching.</div>';
     return;
   }
