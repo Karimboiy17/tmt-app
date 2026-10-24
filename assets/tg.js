@@ -100,3 +100,13 @@
     });
   };
 })();
+
+/* auto-update guard: sahifalar uchun */
+(function(){try{
+ var VER=23, k='tmt_ver';
+ fetch('../version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+  if(!j||!j.ver) return;
+  var have=+(sessionStorage.getItem(k)||0);
+  if(j.ver!==VER && have!==j.ver){sessionStorage.setItem(k,j.ver);location.replace(location.pathname+'?v='+j.ver);}
+ }).catch(function(){});
+}catch(e){}})();
