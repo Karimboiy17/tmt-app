@@ -89,3 +89,220 @@ table.books td.tot{font-weight:700}
 @media (max-width:420px){
   .kpis{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* ---------- home: IELTS ZONE brand + metro live tiles ---------- */
+body.home{
+  background:#2b0625;padding:0 14px 26px;
+  --plum:#2b0625; --plum2:#3b0a4e; --plum3:#170316;
+  --lime:#e7ee61; --lav:#c3aecb;
+}
+
+/* brand: dark plum field + faint "9" mark watermark */
+.wallpaper{
+  position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(120% 85% at 50% 4%, rgba(94,12,120,.55) 0%, rgba(94,12,120,0) 62%),
+    radial-gradient(95% 65% at 92% 102%, rgba(231,238,97,.12) 0%, rgba(231,238,97,0) 66%),
+    linear-gradient(180deg,#3a0838 0%,#2b0625 46%,#170316 100%);
+}
+.wallpaper::after{
+  content:"";position:absolute;inset:0;
+  background:url("assets/logo.jpg") center 44%/min(96vw,540px) no-repeat;
+  opacity:.13;mix-blend-mode:screen;
+}
+.scrim{
+  position:fixed;inset:0;z-index:-1;
+  background:
+    linear-gradient(180deg,rgba(23,3,22,.20) 0%,rgba(23,3,22,.06) 26%,rgba(23,3,22,.52) 78%,rgba(23,3,22,.80) 100%);
+}
+
+body.home .hero{padding:24px 2px 16px}
+body.home .brand{gap:11px}
+.brand .mark{
+  width:40px;height:40px;flex:0 0 40px;border-radius:10px;object-fit:cover;
+  box-shadow:0 4px 16px rgba(231,238,97,.18),0 0 0 1px rgba(231,238,97,.22);
+}
+body.home .brand h1{
+  font-size:19px;font-weight:700;letter-spacing:.9px;
+  text-shadow:0 1px 12px rgba(0,0,0,.5);
+}
+body.home .brand p{
+  margin:3px 0 0;color:var(--lav);opacity:.85;font-size:12.5px;
+  letter-spacing:.2px;text-shadow:0 1px 8px rgba(0,0,0,.45);
+}
+
+main.metro{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  perspective:1100px;perspective-origin:50% 40%;
+}
+/* flexible: 2 → 3 → 4 columns as the screen grows */
+@media (min-width:520px){
+  body.home{max-width:760px;margin:0 auto;padding-inline:20px}
+  main.metro{grid-template-columns:repeat(3,1fr);gap:10px;grid-auto-flow:dense}
+  .metro .clock .t{font-size:52px}
+}
+@media (min-width:780px){
+  body.home{max-width:900px}
+  main.metro{grid-template-columns:repeat(4,1fr)}
+  .metro .clock .t{font-size:56px}
+}
+.metro .tile{
+  position:relative;display:block;aspect-ratio:1/1;min-width:0;
+  border-radius:2px;overflow:visible;color:#fff;
+  box-shadow:
+    0 18px 30px -14px rgba(0,0,0,.90),
+    0 4px 10px rgba(0,0,0,.45);
+  transition:transform .14s ease,box-shadow .14s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.metro .tile.wide{grid-column:span 2;aspect-ratio:2/1}
+.metro .tile.pressed,.metro .tile:active{
+  transform:scale(.962);box-shadow:0 4px 12px rgba(0,0,0,.5);
+}
+
+/* clock tile — glass over brand field */
+.metro .clock{
+  background:rgba(43,6,37,.34);
+  -webkit-backdrop-filter:blur(12px) saturate(125%);
+  backdrop-filter:blur(12px) saturate(125%);
+  border:1px solid rgba(231,238,97,.20);
+  box-shadow:none;
+  display:flex;align-items:center;
+}
+.metro .clock .ck{padding:14px 16px;display:flex;flex-direction:column;gap:1px}
+.metro .clock .t{
+  font-size:46px;font-weight:200;line-height:1;letter-spacing:-2px;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 14px rgba(0,0,0,.55);
+}
+.metro .clock .d{font-size:12px;letter-spacing:.5px;color:var(--lime);opacity:.85}
+
+.metro .flip{
+  position:absolute;inset:0;transform-style:preserve-3d;
+  animation:flip var(--dur,14s) cubic-bezier(.5,0,.2,1) infinite;
+  animation-delay:var(--dl,0s);
+}
+.metro .face{
+  position:absolute;inset:0;padding:14px 15px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  overflow:hidden;
+  background:
+    radial-gradient(115% 85% at 12% -8%,rgba(255,255,255,.17) 0%,rgba(255,255,255,0) 46%),
+    radial-gradient(125% 105% at 106% 108%,rgba(0,0,0,.46) 0%,rgba(0,0,0,0) 62%),
+    linear-gradient(158deg,#4b1246 0%,#33073a 46%,#180315 100%);
+  border:1px solid rgba(231,238,97,.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -12px 26px rgba(0,0,0,.34);
+}
+.metro .face::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,0) 50%);
+}
+.metro .face.bk{
+  transform:rotateX(180deg);justify-content:center;gap:8px;
+  background:
+    radial-gradient(110% 90% at 50% -12%,rgba(231,238,97,.16) 0%,rgba(231,238,97,0) 58%),
+    linear-gradient(168deg,#400d4f 0%,#220524 52%,#12020f 100%);
+}
+.metro .face.bk::after{background:linear-gradient(200deg,rgba(231,238,97,.10),rgba(0,0,0,.30))}
+
+/* Apple-style app-icon plates — squircle, gradient fill, white glyph */
+.metro .ic{
+  position:relative;z-index:1;
+  width:58px;height:58px;border-radius:23%;
+  display:grid;place-items:center;color:#fff;
+  background:linear-gradient(180deg,var(--g1,#8e8e93) 0%,var(--g2,#3a3a42) 100%);
+  box-shadow:
+    0 7px 16px rgba(0,0,0,.40),
+    0 1px 2px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 rgba(0,0,0,.12);
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+.metro .ic::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,0) 56%);
+}
+.metro .ic svg{
+  width:31px;height:31px;display:block;position:relative;z-index:1;
+  fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.30));
+}
+.metro .tile.wide .ic{width:66px;height:66px}
+.metro .tile.wide .ic svg{width:36px;height:36px}
+.metro .tile:hover .ic{transform:translateY(-2px) scale(1.03)}
+.metro .tile:active .ic,.metro .tile.pressed .ic{transform:scale(.94)}
+
+.metro .lb{display:flex;flex-direction:column;gap:2px;position:relative;z-index:1}
+.metro .lb b{font-size:16px;font-weight:600;letter-spacing:-.2px;line-height:1.15;text-shadow:0 1px 6px rgba(0,0,0,.55)}
+.metro .lb i{font-style:normal;font-size:11px;opacity:.86;line-height:1.25;letter-spacing:.1px;text-shadow:0 1px 5px rgba(0,0,0,.6)}
+.metro .wide .lb b{font-size:19px}
+.metro .wide .lb i{font-size:12px;opacity:.82}
+.metro .bk .lb b{font-size:17px}
+.metro .bk .lb i{font-size:11.5px;max-width:88%}
+.metro .ar{
+  position:absolute;right:12px;bottom:8px;font-size:24px;line-height:1;
+  opacity:.6;font-weight:300;z-index:1;color:var(--lime);
+}
+
+/* brand hero tile — lime, dark plum type, raised lime plate */
+.metro .lime .face{
+  background:
+    radial-gradient(115% 85% at 10% -12%,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 55%),
+    radial-gradient(120% 100% at 100% 110%,rgba(120,132,0,.30) 0%,rgba(120,132,0,0) 62%),
+    linear-gradient(158deg,#f4f98f 0%,#e7ee61 40%,#ccd930 100%);
+  color:#2b0625;border-color:rgba(255,255,255,.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 -12px 26px rgba(110,120,0,.30);
+}
+.metro .lime .face::after{background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,255,255,0) 56%)}
+.metro .lime .face.bk{
+  background:
+    radial-gradient(110% 90% at 50% -10%,rgba(255,255,255,.45) 0%,rgba(255,255,255,0) 58%),
+    linear-gradient(170deg,#eff57c 0%,#c8d52c 100%);
+}
+.metro .lime .face.bk::after{background:linear-gradient(200deg,rgba(255,255,255,.22),rgba(43,6,37,.18))}
+.metro .lime .ar{color:#2b0625}
+.metro .lime .ic{color:#e7ee61}
+.metro .lime .ic svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
+.metro .lime .lb b,.metro .lime .lb i{text-shadow:none}
+.metro .lime .lb i{opacity:.80}
+
+/* per-tile accent for the 3D icon plates */
+/* iOS palette per tile */
+.d1{--g1:#4add82;--g2:#0d9a52}
+.d2{--g1:#4fa8ff;--g2:#0a5fd8}
+.d3{--g1:#ffd95a;--g2:#ee9f0c}
+.d4{--g1:#c885ff;--g2:#7724dc}
+.d5{--g1:#ffab42;--g2:#e2610a}
+.d6{--g1:#7f7f88;--g2:#3c3c44}
+.d7{--g1:#63dcff;--g2:#0a7fc4}
+.metro .lime{--g1:#3d0f38;--g2:#1a0316}
+
+@keyframes flip{
+  0%   {transform:rotateX(0deg)}
+  8%   {transform:rotateX(180deg)}
+  46%  {transform:rotateX(180deg)}
+  54%  {transform:rotateX(360deg)}
+  100% {transform:rotateX(360deg)}
+}
+
+.d0{--dl:0s}.d1{--dl:1.6s}.d2{--dl:3.2s}.d3{--dl:4.8s}
+.d4{--dl:6.4s}.d5{--dl:8s}.d6{--dl:9.6s}.d7{--dl:11.2s}
+
+body.home footer{
+  margin-top:20px;color:rgba(195,174,203,.48);font-size:11.5px;letter-spacing:.4px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .metro .flip{animation:none}
+}
+@media (max-width:340px){
+  .metro .lb b{font-size:14px}
+  .metro .lb i{display:none}
+}

@@ -3,112 +3,165 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Maintenance Team</title>
-<link rel="stylesheet" href="style.css?v=1">
+<meta name="theme-color" content="#2b0625">
+<title>IELTS ZONE — TMT</title>
+<link rel="stylesheet" href="style.css?v=12">
 <script src="assets/telegram-web-app.js"></script>
-<script src="assets/tg.js?v=5"></script>
+<script src="assets/tg.js?v=6"></script>
 </head>
-<body>
+<body class="home">
+<div class="wallpaper"></div>
+<div class="scrim"></div>
+
 <header class="hero">
   <div class="brand">
-    <span class="dot"></span>
-    <div>
-      <h1>The Maintenance Team</h1>
-      <p id="who">xodim ilovasi</p>
+    <img class="mark" src="assets/logo.jpg" alt="IELTS ZONE">
+    <div class="bt">
+      <h1>IELTS ZONE</h1>
+      <p id="who">The Maintenance Team</p>
     </div>
   </div>
 </header>
 
-<main>
-  <a class="card" href="pages/books.html">
-    <span class="ico">📚</span>
-    <span class="tx">
-      <b>Kitoblar ombori</b>
-      <i>filial qoldiqlari va zakazlar</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/tasks.html">
-    <span class="ico">📋</span>
-    <span class="tx">
-      <b>Vazifalar</b>
-      <i>topshiriqlar, muddat, isbot bilan yopish</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/rooms.html">
-    <span class="ico">🚪</span>
-    <span class="tx">
-      <b>Xonalar</b>
-      <i>kunlik tozalik nazorati — har xonaga 2 rasm</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/ranking.html">
-    <span class="ico">🏆</span>
-    <span class="tx">
-      <b>Reyting</b>
-      <i>kunlik/haftalik ball — xona, vazifa, intizom</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/reports.html">
-    <span class="ico">📊</span>
-    <span class="tx">
-      <b>Hisobotlar</b>
-      <i>kunlik/haftalik xulosa — davomat, xonalar, vazifalar</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/admin.html">
-    <span class="ico">🛠</span>
-    <span class="tx">
-      <b>Admin</b>
-      <i>filiallar, xodimlar va koordinatorlar — umumiy ko‘rinish</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/coordinators.html">
-    <span class="ico">🧑‍💼</span>
-    <span class="tx">
-      <b>Koordinatorlar</b>
-      <i>har filialga mas’ul koordinator biriktirish (ega uchun)</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <a class="card" href="pages/attendance.html">
-    <span class="ico">🎥</span>
-    <span class="tx">
-      <b>Davomat</b>
-      <i>ishga keldim / ishdan ketdim — video bilan</i>
-    </span>
-    <span class="arw">→</span>
-  </a>
-
-  <div class="soon">
-    <b>Keyingi bosqich</b>
-    <span>Xonalar · reyting · hisobotlar — shu ilovaga qo‘shiladi</span>
+<main class="metro">
+  <div class="tile clock wide">
+    <div class="ck">
+      <span class="t" id="ctime">--:--</span>
+      <span class="d" id="cdate"></span>
+    </div>
   </div>
+
+  <a class="tile wide lime d0" href="pages/tasks.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M9 4h6M8 4v2M16 4v2M5 7h14v13H5z"/><path d="M8.6 12.6l2 2 4-4"/></svg></span>
+        <span class="lb"><b>Vazifalar</b><i>topshiriq · muddat · isbot</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Vazifalar</b><i>ishni rasm yoki video bilan yoping</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d1" href="pages/rooms.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M5 21V4h9v17"/><path d="M14 9h5v12"/><path d="M11.2 12.5h.01"/></svg></span>
+        <span class="lb"><b>Xonalar</b><i>kunlik nazorat</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Xonalar</b><i>har xonaga 2 rasm</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d2" href="pages/attendance.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 8h11v9H4z"/><path d="M15 11l5-3v9l-5-3"/></svg></span>
+        <span class="lb"><b>Davomat</b><i>keldim · ketdim</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Davomat</b><i>video bilan tasdiqlanadi</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile wide d3" href="pages/ranking.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 5H5v2a3 3 0 003 3M16 5h3v2a3 3 0 01-3 3"/><path d="M12 13v4M9 20h6"/></svg></span>
+        <span class="lb"><b>Reyting</b><i>kunlik ball · filial bo‘yicha</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Reyting</b><i>xona · vazifa · intizom</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d4" href="pages/reports.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 20V6M4 20h16"/><path d="M8 20v-6M12 20V9M16 20v-4"/></svg></span>
+        <span class="lb"><b>Hisobot</b><i>kun · hafta · oy</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Hisobot</b><i>guruhga yuborish</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d5" href="pages/books.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M8 4v13"/></svg></span>
+        <span class="lb"><b>Kitoblar</b><i>qoldiq</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Kitoblar</b><i>7 daraja · 5 filial</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d6" href="pages/admin.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
+        <span class="lb"><b>Admin</b><i>xodim · filial</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Admin</b><i>yangi xodimni tasdiqlash</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
+
+  <a class="tile d7" href="pages/coordinators.html">
+    <span class="flip">
+      <span class="face">
+        <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/></svg></span>
+        <span class="lb"><b>Koordinator</b><i>filial mas’uli</i></span>
+      </span>
+      <span class="face bk">
+        <span class="lb"><b>Koordinator</b><i>har filialga biriktiriladi</i></span>
+        <span class="ar">→</span>
+      </span>
+    </span>
+  </a>
 </main>
 
-<footer id="ft">@tmtzone_bot</footer>
+<footer id="ft">IELTS ZONE · @tmtzone_bot</footer>
 
 <script>
-(async function(){
+(function(){
   try{
-    const r = await tgFetch("https://maintenance-production-d87e.up.railway.app/api/webapp/me", {cache:"no-store"});
-    if(r.ok){
-      const u = await r.json();
-      document.getElementById("who").textContent = u.name || "xodim";
-    }
+    const me = JSON.parse(sessionStorage.getItem("tg_me") || "null");
+    if(me && me.name) document.getElementById("who").textContent = me.name;
   }catch(e){}
+
+  const DAYS = ["Yak","Dush","Sesh","Chor","Pay","Jum","Shan"];
+  const MON = ["yanv","fevr","mart","apr","may","iyun","iyul","avg","sen","okt","noy","dek"];
+  function tick(){
+    const d = new Date();
+    document.getElementById("ctime").textContent =
+      String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    document.getElementById("cdate").textContent =
+      DAYS[d.getDay()] + ", " + d.getDate() + " " + MON[d.getMonth()];
+  }
+  tick(); setInterval(tick, 15000);
+
+  document.addEventListener("click", function(e){
+    const t = e.target.closest(".tile");
+    if(!t || t.classList.contains("clock")) return;
+    t.classList.add("pressed");
+    setTimeout(function(){ t.classList.remove("pressed"); }, 180);
+  });
 })();
 </script>
 </body>
