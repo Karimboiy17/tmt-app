@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Davomat — TMT</title>
+<link rel="stylesheet" href="../style.css?v=1">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="../assets/tg.js"></script>
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:16px}
+  .back{color:var(--dim);text-decoration:none;font-size:14px}
+  h1{font-size:20px;margin:12px 0 4px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  video#cam{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;background:#000;border:1px solid var(--line)}
+  .btns{display:grid;gap:10px;margin-top:14px}
+  button{border:0;border-radius:14px;padding:14px;font-size:15px;font-weight:600;font-family:inherit}
+  .rec{background:var(--amber);color:#12161a}
+  .stop{background:#e5484d;color:#fff}
+  .send{background:var(--ok);color:#08110c}
+  .ghost{background:var(--panel);color:var(--tx);border:1px solid var(--line)}
+  button:disabled{opacity:.45}
+  .note{margin-top:12px}
+  .note textarea{width:100%;min-height:64px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--tx);padding:10px;font-family:inherit;font-size:14px}
+  .st{margin-top:12px;font-size:14px;color:var(--dim);min-height:20px}
+  .st.ok{color:var(--ok)} .st.err{color:#e5484d}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
+  <h1>Davomat</h1>
+  <p class="sub" id="sub">Kamera ochilishi kerak</p>
+
+  <video id="cam" autoplay playsinline muted></video>
+
+  <div class="note">
+    <textarea id="note" placeholder="Izoh (majburiy emas)"></textarea>
+  </div>
+
+  <div class="btns">
+    <button class="rec" id="bRec" disabled>⏺ Yozishni boshlash</button>
+    <button class="stop" id="bStop" hidden>⏹ To‘xtatish</button>
+    <button class="send" id="bIn" hidden>💼 Ishga keldim — yuborish</button>
+    <button class="send" id="bOut" hidden>🚪 Ishdan ketdim — yuborish</button>
+  </div>
+
+  <div class="st" id="st"></div>
+</div>
+
+<script>
+var API = "https://maintenance-production-d87e.up.railway.app/api/tmt/upload";
+var cam = document.getElementById("cam");
+var st  = document.getElementById("st");
+var blob = null, rec = null, chunks = [], stream = null;
+
+function say(msg, cls){ st.textContent = msg || ""; st.className = "st" + (cls ? " " + cls : ""); }
+
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+  .then(function (s) {
+    stream = s; cam.srcObject = s;
+    document.getElementById("bRec").disabled = false;
+    document.getElementById("sub").textContent = "Videoni yozing (10–20 soniya)";
+  })
+  .catch(function (e) {
+    say("Kamera ochilmadi: " + e.message, "err");
+  });
+
+document.getElementById("bRec").onclick = function () {
+  chunks = [];
+  var mime = "";
+  if (window.MediaRecorder) {
+    if (MediaRecorder.isTypeSupported("video/mp4")) mime = "video/mp4";
+    else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime = "video/webm;codecs=vp9";
+    else if (MediaRecorder.isTypeSupported("video/webm")) mime = "video/webm";
+  }
+  try {
+    rec = mime ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1200000 })
+               : new MediaRecorder(stream);
+  } catch (e) { say("Yozib bo‘lmadi: " + e.message, "err"); return; }
+
+  rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
+  rec.onstop = function () {
+    blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
+    cam.srcObject = null; cam.src = URL.createObjectURL(blob); cam.controls = true;
+    document.getElementById("bRec").hidden = true;
+    document.getElementById("bStop").hidden = true;
+    document.getElementById("bIn").hidden = false;
+    document.getElementById("bOut").hidden = false;
+    say("Video tayyor — keldim yoki ketdim tugmasini bosing");
+  };
+  rec.start();
+  this.hidden = true;
+  document.getElementById("bStop").hidden = false;
+  say("Yozilmoqda…");
+};
+
+document.getElementById("bStop").onclick = function () {
+  if (rec && rec.state === "recording") rec.stop();
+};
+
+function send(purpose, btn) {
+  if (!blob) { say("Avval video yozing", "err"); return; }
+  var fd = new FormData();
+  fd.append("file", blob, "davomat." + ((blob.type.indexOf("mp4") >= 0) ? "mp4" : "webm"));
+  fd.append("kind", "video");
+  fd.append("purpose", purpose);
+  fd.append("caption", document.getElementById("note").value.trim());
+
+  ["bIn", "bOut"].forEach(function (id) { document.getElementById(id).disabled = true; });
+  say("Yuborilmoqda…");
+  tgFetch(API, { method: "POST", body: fd })
+    .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
+    .then(function (res) {
+      if (res.j && res.j.ok) {
+        say("✅ Yuborildi — guruhga tushdi", "ok");
+        if (window.Telegram && Telegram.WebApp) Telegram.WebApp.HapticFeedback &&
+          Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+      } else {
+        say("Xato: " + ((res.j && res.j.error) || res.code), "err");
+        ["bIn", "bOut"].forEach(function (id) { document.getElementById(id).disabled = false; });
+      }
+    })
+    .catch(function (e) {
+      say("Tarmoq xatosi: " + e.message, "err");
+      ["bIn", "bOut"].forEach(function (id) { document.getElementById(id).disabled = false; });
+    });
+}
+
+document.getElementById("bIn").onclick  = function () { send("checkin", this); };
+document.getElementById("bOut").onclick = function () { send("checkout", this); };
+</script>
+</body>
+</html>
