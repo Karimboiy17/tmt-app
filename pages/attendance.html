@@ -6,7 +6,7 @@
 <title>Davomat — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=2"></script>
+<script src="../assets/tg.js?v=5"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -58,17 +58,14 @@ var blob = null, rec = null, chunks = [], stream = null;
 function say(msg, cls){ st.textContent = msg || ""; st.className = "st" + (cls ? " " + cls : ""); }
 
 var ATT = "https://maintenance-production-d87e.up.railway.app/api/tmt/attendance";
-function initLen(){
-  var d = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || window.tgInitData || "";
-  return d.length;
-}
+function initLen(){ return window.tgInitLen ? tgInitLen() : 0; }
 function checkCtx(){
   if (initLen() > 0) return true;
   var w = document.getElementById("today");
-  if (w) w.textContent = "⚠️ Telegram ma'lumoti yo'q (initData 0). Sahifani bot menyusidagi «Ilova» tugmasidan oching.";
+  if (w) w.textContent = "⚠️ Telegram ma'lumoti topilmadi. Sahifani Telegramdagi «Ilova» tugmasidan oching.";
   return false;
 }
-checkCtx();
+tgWaitInit(checkCtx);
 function loadToday(){
   tgFetch(ATT).then(function(r){ return r.json(); }).then(function(j){
     if (!j || !j.ok) return;

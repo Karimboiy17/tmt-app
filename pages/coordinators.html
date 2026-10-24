@@ -6,7 +6,7 @@
 <title>Koordinatorlar — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=2"></script>
+<script src="../assets/tg.js?v=5"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -74,8 +74,10 @@ function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?"":s).replace(/[&<>\"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 function say(m,c){ var e=$("sSt"); e.textContent=m||""; e.className="st"+(c?" "+c:""); }
-function initLen(){ return ((window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || window.tgInitData || "").length; }
-if (!initLen()) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+function initLen(){ return window.tgInitLen ? tgInitLen() : 0; }
+tgWaitInit(function(d){
+  if (!d) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+});
 
 function renderCoords(){
   if (!coords.length){ $("coords").innerHTML = '<div class="empty">Hali koordinator yo\'q</div>'; return; }
@@ -112,7 +114,7 @@ function load(){
 }
 
 function pick(cid, name){
-  if (!initLen()){ alert("«Ilova» tugmasidan oching"); return; }
+  if (!initLen()) tgWaitInit(function(d){ if (!d) alert("Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching"); });
   target = cid;
   var cur = (coords.filter(function(c){ return c.cid === cid; })[0] || {}).branches || [];
   $("sName").textContent = name;

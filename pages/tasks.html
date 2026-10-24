@@ -6,7 +6,7 @@
 <title>Vazifalar — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=2"></script>
+<script src="../assets/tg.js?v=5"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -116,11 +116,10 @@ function say(el, msg, cls){ var e=$(el); e.textContent = msg||""; e.className="s
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 
-function initLen(){
-  var d = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || window.tgInitData || "";
-  return d.length;
-}
-if (!initLen()) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+function initLen(){ return window.tgInitLen ? tgInitLen() : 0; }
+tgWaitInit(function(d){
+  if (!d) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+});
 
 function loadMe(){
   return tgFetch(API + "/api/webapp/me", {cache:"no-store"}).then(function(r){ return r.json(); })
@@ -186,7 +185,7 @@ $("tD").onclick = function(){ status="done"; this.classList.add("on"); $("tA").c
 
 /* ---- isbot oynasi ---- */
 function openProof(id, title){
-  if (!initLen()){ alert("«Ilova» tugmasidan oching"); return; }
+  if (!initLen()) tgWaitInit(function(d){ if (!d) alert("Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching"); });
   cur = id; $("sTitle").textContent = "Isbot — " + title;
   $("sNote").value = ""; blob = null; say("sSt","");
   $("sheet").classList.add("on");
@@ -228,7 +227,7 @@ $("bStop").onclick = function(){ if (rec && rec.state==="recording") rec.stop();
 
 $("bSend").onclick = function(){
   if (!cur) return;
-  if (!initLen()){ say("sSt","Telegram ma'lumoti yo‘q","err"); return; }
+  if (!initLen()) say("sSt","Telegram ma'lumoti kutilmoqda…","");
   var note = $("sNote").value.trim();
   $("bSend").disabled = true;
 
