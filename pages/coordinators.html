@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Koordinatorlar — TMT</title>
+<link rel="stylesheet" href="../style.css?v=1">
+<script src="../assets/telegram-web-app.js"></script>
+<script src="../assets/tg.js"></script>
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+  .back{color:var(--dim);text-decoration:none;font-size:14px}
+  h1{font-size:20px;margin:12px 0 4px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  h2{font-size:14px;margin:18px 0 8px;color:var(--dim);font-weight:600}
+  .it{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;
+    margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .it .nm{font-size:14px;font-weight:600}
+  .it .brs{font-size:12px;color:var(--dim);margin-top:3px}
+  .it button{border:0;background:#2a1a1c;color:#e5484d;border-radius:10px;padding:8px 10px;
+    font-size:12px;font-family:inherit}
+  .stf{background:#12171c;border:1px solid var(--line);border-radius:14px;padding:12px;
+    margin-bottom:8px;cursor:pointer}
+  .stf b{font-size:14px;display:block}
+  .stf i{font-style:normal;font-size:12px;color:var(--dim)}
+  .stf.on{border-color:var(--ok)}
+  #sheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
+  #sheet.on{display:flex}
+  #sheet .in{background:var(--panel);width:100%;padding:16px;border-radius:18px 18px 0 0;max-height:90vh;overflow:auto}
+  #sheet h3{font-size:16px;margin:0 0 10px}
+  .opt{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line);font-size:14px}
+  .opt input{width:20px;height:20px;accent-color:#2ea043}
+  .row{display:flex;gap:8px;margin-top:14px}
+  .row button{flex:1;border:0;border-radius:12px;padding:13px;font-size:14px;font-weight:600;font-family:inherit}
+  .save{background:var(--ok);color:#08110c}
+  .ghost{background:#1b2229;color:var(--tx);border:1px solid var(--line)}
+  .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
+  .st.err{color:#e5484d} .st.ok{color:var(--ok)}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
+  <h1>Koordinatorlar</h1>
+  <p class="sub" id="who">yuklanmoqda…</p>
+
+  <h2>Hozirgi koordinatorlar</h2>
+  <div id="coords"></div>
+
+  <h2>Xodimlar</h2>
+  <div id="staff"></div>
+</div>
+
+<div id="sheet">
+  <div class="in">
+    <h3 id="sName">Koordinator</h3>
+    <div id="sOpts"></div>
+    <div class="row">
+      <button class="save" id="bSave">Saqlash</button>
+      <button class="ghost" id="bCancel">Bekor</button>
+    </div>
+    <div class="st" id="sSt"></div>
+  </div>
+</div>
+
+<script>
+var API = "https://maintenance-production-d87e.up.railway.app";
+var URL_C = API + "/api/tmt/coordinators";
+var URL_R = API + "/api/tmt/coordinators/remove";
+var branches = [], staff = [], coords = [], target = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>\"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+function say(m,c){ var e=$("sSt"); e.textContent=m||""; e.className="st"+(c?" "+c:""); }
+function initLen(){ return ((window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || window.tgInitData || "").length; }
+if (!initLen()) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+
+function renderCoords(){
+  if (!coords.length){ $("coords").innerHTML = '<div class="empty">Hali koordinator yo\'q</div>'; return; }
+  $("coords").innerHTML = coords.map(function(c){
+    return '<div class="it"><div><div class="nm">'+esc(c.name || c.cid)+'</div>'+
+      '<div class="brs">'+c.branches.map(esc).join(" · ")+'</div></div>'+
+      '<button onclick="del('+c.cid+')">Olib tashlash</button></div>';
+  }).join("");
+}
+
+function renderStaff(){
+  if (!staff.length){ $("staff").innerHTML = '<div class="empty">Xodim topilmadi</div>'; return; }
+  $("staff").innerHTML = staff.map(function(s){
+    var isC = coords.some(function(c){ return c.cid === s.cid; });
+    return '<div class="stf'+(isC?" on":"")+'" onclick="pick('+s.cid+',\''+esc(s.name).replace(/'/g,"")+'\')">'+
+      '<b>'+esc(s.name || s.cid)+'</b><i>'+esc(s.branch || "—")+(isC?" · koordinator":"")+'</i></div>';
+  }).join("");
+}
+
+function load(){
+  tgFetch(URL_C, {cache:"no-store"}).then(function(r){
+    if (r.status === 403) throw new Error("faqat ega ko'ra oladi");
+    return r.json();
+  }).then(function(j){
+    if (!j || !j.ok) throw new Error((j&&j.error)||"xato");
+    branches = j.branches || []; staff = j.staff || []; coords = j.coordinators || [];
+    $("who").textContent = "Ega: koordinator biriktirish";
+    renderCoords(); renderStaff();
+  }).catch(function(e){
+    $("who").textContent = "";
+    $("coords").innerHTML = '<div class="empty">'+esc(e.message)+'</div>';
+    $("staff").innerHTML = "";
+  });
+}
+
+function pick(cid, name){
+  if (!initLen()){ alert("«Ilova» tugmasidan oching"); return; }
+  target = cid;
+  var cur = (coords.filter(function(c){ return c.cid === cid; })[0] || {}).branches || [];
+  $("sName").textContent = name;
+  $("sOpts").innerHTML = branches.map(function(b){
+    var on = cur.indexOf(b) >= 0 ? " checked" : "";
+    return '<label class="opt"><input type="checkbox" value="'+esc(b)+'"'+on+'>'+esc(b)+'</label>';
+  }).join("");
+  say("");
+  $("sheet").classList.add("on");
+}
+$("bCancel").onclick = function(){ $("sheet").classList.remove("on"); };
+
+$("bSave").onclick = function(){
+  var sel = [].slice.call(document.querySelectorAll("#sOpts input:checked")).map(function(i){ return i.value; });
+  if (!sel.length){ say("Kamida bitta filial tanlang","err"); return; }
+  say("Saqlanmoqda…");
+  tgFetch(URL_C, {method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({cid:target, branches:sel})})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok) throw new Error((j&&j.error)||"xato");
+      say("✅ Saqlandi","ok");
+      setTimeout(function(){ $("sheet").classList.remove("on"); load(); }, 500);
+    })
+    .catch(function(e){ say("Xato: "+e.message,"err"); });
+};
+
+function del(cid){
+  if (!confirm("Koordinatorlikdan olib tashlansinmi?")) return;
+  tgFetch(URL_R, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({cid:cid})})
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (!j.ok) throw new Error(j.error||"xato"); load(); })
+    .catch(function(e){ alert("Xato: "+e.message); });
+}
+
+load();
+</script>
+</body>
+</html>
