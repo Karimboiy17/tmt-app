@@ -47,6 +47,9 @@
     <div><div class="ttl">🛠 Admin</div><div class="sub" id="who">—</div></div>
   </div>
 
+  <div class="card2" id="pendCard" style="display:none">
+    <h3>Kutayotganlar</h3><div id="pend"></div>
+  </div>
   <div class="card2"><h3>Filiallar</h3><div id="brs"></div></div>
   <div class="card2"><h3>Koordinatorlar</h3><div id="coords"></div></div>
   <div class="card2">
@@ -73,6 +76,24 @@
 
     <button class="save" onclick="saveUser()">Saqlash</button>
     <div class="msg" id="mMsg"></div>
+  </div>
+</div>
+
+<div class="modal" id="pModal">
+  <div class="sheet">
+    <button class="close" onclick="closePend()">×</button>
+    <h2 id="pName">—</h2>
+    <div class="sub2" id="pSub">—</div>
+
+    <div class="lb">Filial</div>
+    <div class="chips" id="pBranch"></div>
+
+    <div class="lb">Smena</div>
+    <div class="chips" id="pShift"></div>
+
+    <button class="save" onclick="approvePend()">Tasdiqlash</button>
+    <button class="save" style="background:#e35b5b;color:#fff;margin-top:8px" onclick="rejectPend()">Rad etish</button>
+    <div class="msg" id="pMsg"></div>
   </div>
 </div>
 
@@ -173,9 +194,11 @@ function load(){
     document.getElementById("who").textContent =
       j.staff.length + " xodim · " + j.branches.length + " filial" + (j.is_owner ? " · ega" : "");
     DATA.staff = j.staff || [];
+    DATA.pending = j.pending || [];
     OWNER = !!j.is_owner;
     BRANCH_LIST = (j.branches || []).map(function(b){ return b.name; });
     renderStaff();
+    renderPending();
 
     document.getElementById("brs").innerHTML = (j.branches || []).map(function(b){
       var pct = b.rooms ? Math.round(b.done / b.rooms * 100) : 0;
@@ -195,6 +218,74 @@ function load(){
     document.getElementById("who").textContent = "tarmoq xatosi";
   });
 }
+
+// ---------- kutayotganlar ----------
+var PSEL = {cid: 0, role: "worker", branch: "", shift: "morning"};
+
+function renderPending(){
+  var list = DATA.pending || [];
+  var card = document.getElementById("pendCard");
+  if (!OWNER || !list.length){ card.style.display = "none"; return; }
+  card.style.display = "";
+  var el = document.getElementById("pend");
+  el.innerHTML = list.map(function(p){
+    return '<div class="st" data-cid="' + p.cid + '"><div class="av">' + initials(p.name) + '</div>' +
+      '<div class="nm">' + esc(p.name) + '<i>' + esc(p.role === "staff" ? "staff" : "hodim") +
+      (p.at ? " · " + esc(p.at) : "") + '</i></div><span class="tag c">yangi</span></div>';
+  }).join("");
+  Array.prototype.forEach.call(el.querySelectorAll(".st"), function(n){
+    n.onclick = function(){ openPend(parseInt(n.getAttribute("data-cid"), 10)); };
+  });
+}
+
+function openPend(cid){
+  var p = (DATA.pending || []).filter(function(x){ return x.cid === cid; })[0];
+  if (!p) return;
+  PSEL = {cid: cid, role: p.role || "worker",
+          branch: BRANCH_LIST[0] || "", shift: "morning"};
+  document.getElementById("pName").textContent = p.name;
+  document.getElementById("pSub").textContent = p.cid + (p.role === "staff" ? " · staff" : " · hodim");
+  document.getElementById("pMsg").textContent = "";
+  drawPendChips();
+  document.getElementById("pModal").classList.add("on");
+}
+
+function closePend(){ document.getElementById("pModal").classList.remove("on"); }
+
+function drawPendChips(){
+  var bs = BRANCH_LIST.map(function(b){ return {v:b, t:b}; });
+  chipRow.call(null, "pBranch", bs, "branch");
+  // branch chipsi PSEL.branch ni o'qiydi
+  Array.prototype.forEach.call(document.getElementById("pBranch").querySelectorAll(".chip"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-v") === PSEL.branch);
+    b.onclick = function(){ PSEL.branch = b.getAttribute("data-v"); drawPendChips(); };
+  });
+  chipRow.call(null, "pShift", [
+    {v:"morning", t:"🌅 Ertalabki"},
+    {v:"evening", t:"🌆 Tushdan keyingi"}
+  ], "shift");
+  Array.prototype.forEach.call(document.getElementById("pShift").querySelectorAll(".chip"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-v") === PSEL.shift);
+    b.onclick = function(){ PSEL.shift = b.getAttribute("data-v"); drawPendChips(); };
+  });
+}
+
+function pendSend(action){
+  var msg = document.getElementById("pMsg");
+  msg.textContent = "yuborilmoqda…";
+  tgJson("/api/tmt/admin/pending", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({cid: PSEL.cid, action: action,
+                          branch: PSEL.branch, shift: PSEL.shift})
+  }).then(function(j){
+    if (j && j.ok){ msg.textContent = "bajarildi ✓"; setTimeout(function(){ closePend(); load(); }, 600); }
+    else { msg.textContent = (j && j.error) || "xato"; }
+  }).catch(function(){ msg.textContent = "tarmoq xatosi"; });
+}
+
+function approvePend(){ pendSend("approve"); }
+function rejectPend(){ pendSend("reject"); }
 
 document.getElementById("q").oninput = renderStaff;
 tgReady(load);

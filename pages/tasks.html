@@ -38,6 +38,9 @@
   .form .send{width:100%;background:var(--ok);color:#08110c;border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700}
   #sheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
   #sheet.on{display:flex}
+  #asheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
+  #asheet.on{display:flex}
+  #asheet .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
   #sheet .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
   video#cam{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#000}
   .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
@@ -70,6 +73,18 @@
     <div class="staff" id="staff"></div>
     <button class="send" id="bCreate">Vazifani berish</button>
     <div class="st" id="nSt"></div>
+  </div>
+</div>
+
+<div id="asheet">
+  <div class="in">
+    <h2 style="font-size:16px;margin:0 0 10px">👤 Xodimga biriktirish</h2>
+    <div class="staff" id="aStaff"></div>
+    <div class="row">
+      <button class="done" id="aSend">Biriktirish</button>
+      <button class="ghost" id="aClose">Yopish</button>
+    </div>
+    <div class="st" id="aSt"></div>
   </div>
 </div>
 
@@ -147,7 +162,10 @@ function render(items){
         (isManager ? '<span class="tag">👤 '+esc(t.assignee_name||t.assignee)+'</span>' : '') +
         (t.repeat && t.repeat!=="once" ? '<span class="tag">🔁 '+(t.repeat==="daily"?"har kuni":"har hafta")+'</span>' : '') +
       '</div>' +
-      (t.status!=="done" ? '<div class="row"><button class="done" onclick="openProof('+t.id+',\''+esc(t.title).replace(/'/g,"")+'\')">✅ Isbot bilan yopish</button></div>' : '') +
+      (t.status!=="done" ? '<div class="row">' +
+        '<button class="done" onclick="openProof('+t.id+',\''+esc(t.title).replace(/'/g,"")+'\')">✅ Isbot bilan yopish</button>' +
+        (isManager ? '<button class="ghost" onclick="openAssign('+t.id+')">👤 Biriktirish</button>' : '') +
+      '</div>' : '') +
     '</div>';
   }).join("");
 }
@@ -242,6 +260,34 @@ $("bSend").onclick = function(){
       else say("sSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
     })
     .catch(function(e){ $("bSend").disabled=false; say("sSt","Tarmoq xatosi: "+e.message,"err"); });
+};
+
+/* ---- qayta biriktirish ---- */
+var AID = 0;
+function openAssign(id){
+  AID = id; say("aSt","");
+  $("aStaff").innerHTML = staffList.length ? staffList.map(function(s){
+    return '<label><input type="radio" name="aPick" value="'+s.cid+'"> '+esc(s.name)+
+      (s.branch ? ' <span style="color:var(--dim)">· '+esc(s.branch)+'</span>' : '')+'</label>';
+  }).join("") : '<div style="font-size:13px;color:var(--dim);padding:6px">Xodim topilmadi</div>';
+  $("asheet").classList.add("on");
+}
+function closeAssign(){ $("asheet").classList.remove("on"); }
+$("aClose").onclick = closeAssign;
+$("aSend").onclick = function(){
+  var p = document.querySelector('#aStaff input:checked');
+  if (!p){ say("aSt","Xodim tanlang","err"); return; }
+  say("aSt","yuborilmoqda…");
+  var self = this; self.disabled = true;
+  tgFetch(TASKS + "/" + AID + "/assign", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({cid: p.value})})
+    .then(function(r){ return r.json().then(function(j){ return {code:r.status,j:j}; }); })
+    .then(function(res){
+      self.disabled = false;
+      if (res.j && res.j.ok){ say("aSt","✅ biriktirildi","ok"); setTimeout(function(){ closeAssign(); load(); }, 600); }
+      else say("aSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
+    })
+    .catch(function(e){ self.disabled=false; say("aSt","Tarmoq xatosi: "+e.message,"err"); });
 };
 
 /* ---- yangi vazifa ---- */
