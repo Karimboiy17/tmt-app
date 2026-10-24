@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vazifalar — TMT</title>
+<link rel="stylesheet" href="../style.css?v=1">
+<script src="../assets/telegram-web-app.js"></script>
+<script src="../assets/tg.js"></script>
+<style>
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+  .back{color:var(--dim);text-decoration:none;font-size:14px}
+  h1{font-size:20px;margin:12px 0 4px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:12px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--tx);
+    border-radius:12px;padding:9px;font-size:13px;font-family:inherit}
+  .tabs button.on{background:var(--ok);color:#08110c;border-color:var(--ok);font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}
+  .card .t{font-weight:600;font-size:15px;margin-bottom:4px}
+  .card .n{font-size:13px;color:var(--dim);white-space:pre-wrap}
+  .card .m{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--dim)}
+  .tag{background:#1b2229;border:1px solid var(--line);border-radius:8px;padding:2px 8px}
+  .tag.late{background:#3a1d1f;border-color:#e5484d;color:#ffb3b5}
+  .tag.ok{background:#12301f;border-color:var(--ok);color:#8ef0b6}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row button{flex:1;border:0;border-radius:12px;padding:11px;font-size:14px;font-weight:600;font-family:inherit}
+  .done{background:var(--ok);color:#08110c}
+  .ghost{background:#1b2229;color:var(--tx);border:1px solid var(--line)}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:24px 0}
+  .form{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:16px}
+  .form h2{font-size:15px;margin:0 0 10px}
+  .form input,.form textarea,.form select{width:100%;background:#12171c;border:1px solid var(--line);
+    border-radius:10px;color:var(--tx);padding:10px;font-family:inherit;font-size:14px;margin-bottom:8px}
+  .form textarea{min-height:60px}
+  .staff{max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:8px}
+  .staff label{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px}
+  .form .send{width:100%;background:var(--ok);color:#08110c;border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700}
+  #sheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
+  #sheet.on{display:flex}
+  #sheet .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
+  video#cam{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#000}
+  .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
+  .st.err{color:#e5484d} .st.ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
+  <h1>Vazifalar</h1>
+  <p class="sub" id="who">yuklanmoqda…</p>
+
+  <div class="tabs">
+    <button id="tA" class="on">Faol</button>
+    <button id="tD">Bajarilgan</button>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="form" id="newBox" hidden>
+    <h2>➕ Yangi vazifa</h2>
+    <input id="nTitle" placeholder="Vazifa nomi">
+    <textarea id="nNote" placeholder="Izoh (majburiy emas)"></textarea>
+    <input id="nDate" type="date">
+    <select id="nRepeat">
+      <option value="once">Bir martalik</option>
+      <option value="daily">Har kuni</option>
+      <option value="weekly">Har hafta</option>
+    </select>
+    <div class="staff" id="staff"></div>
+    <button class="send" id="bCreate">Vazifani berish</button>
+    <div class="st" id="nSt"></div>
+  </div>
+</div>
+
+<div id="sheet">
+  <div class="in">
+    <h2 style="font-size:16px;margin:0 0 10px" id="sTitle">Isbot</h2>
+    <video id="cam" autoplay playsinline muted></video>
+    <textarea id="sNote" placeholder="Izoh" style="width:100%;min-height:56px;margin-top:10px;background:#12171c;border:1px solid var(--line);border-radius:10px;color:var(--tx);padding:10px;font-family:inherit"></textarea>
+    <div class="row">
+      <button class="ghost" id="bRec">⏺ Yozish</button>
+      <button class="ghost" id="bStop" hidden>⏹ To‘xtatish</button>
+      <button class="done" id="bSend">Yuborish</button>
+      <button class="ghost" id="bClose">Yopish</button>
+    </div>
+    <div class="st" id="sSt"></div>
+  </div>
+</div>
+
+<script>
+var API = "https://maintenance-production-d87e.up.railway.app";
+var TASKS = API + "/api/tmt/tasks";
+var UP = API + "/api/tmt/upload";
+
+var status = "active", isManager = false, staffList = [], cur = null;
+var blob = null, rec = null, chunks = [], stream = null;
+
+function $(id){ return document.getElementById(id); }
+function say(el, msg, cls){ var e=$(el); e.textContent = msg||""; e.className="st"+(cls?" "+cls:""); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+function initLen(){
+  var d = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData) || window.tgInitData || "";
+  return d.length;
+}
+if (!initLen()) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+
+function loadMe(){
+  return tgFetch(API + "/api/webapp/me", {cache:"no-store"}).then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok) return;
+      isManager = !!j.manager;
+      $("who").textContent = (j.name || "xodim") + (isManager ? " · menejer" : "");
+      if (isManager){ $("newBox").hidden = false; loadStaff(); }
+    }).catch(function(){});
+}
+
+function loadStaff(){
+  tgFetch(API + "/api/tmt/staff", {cache:"no-store"}).then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok) return;
+      staffList = j.staff || [];
+      $("staff").innerHTML = staffList.map(function(s){
+        return '<label><input type="checkbox" value="'+s.cid+'" data-name="'+esc(s.name)+'"> '+
+               esc(s.name) + (s.branch ? ' <span style="color:var(--dim)">· '+esc(s.branch)+'</span>' : '') + '</label>';
+      }).join("") || '<div style="font-size:13px;color:var(--dim);padding:6px">Xodim topilmadi</div>';
+    }).catch(function(){});
+}
+
+function deadlineTag(t){
+  if (!t.deadline) return '';
+  var d = new Date(t.deadline + "T23:59:59");
+  var late = t.status !== "done" && d < new Date();
+  return '<span class="tag '+(late?"late":"")+'">📅 '+t.deadline+(late?" · kechikkan":"")+'</span>';
+}
+
+function render(items){
+  if (!items.length){ $("list").innerHTML = '<div class="empty">'+(status==="active"?"Faol vazifa yo‘q ✅":"Hali bajarilgan yo‘q")+'</div>'; return; }
+  $("list").innerHTML = items.map(function(t){
+    return '<div class="card">' +
+      '<div class="t">'+esc(t.title)+'</div>' +
+      (t.note ? '<div class="n">'+esc(t.note)+'</div>' : '') +
+      '<div class="m">' + deadlineTag(t) +
+        (t.status==="done" ? '<span class="tag ok">✅ bajarildi</span>' : '') +
+        (isManager ? '<span class="tag">👤 '+esc(t.assignee_name||t.assignee)+'</span>' : '') +
+        (t.repeat && t.repeat!=="once" ? '<span class="tag">🔁 '+(t.repeat==="daily"?"har kuni":"har hafta")+'</span>' : '') +
+      '</div>' +
+      (t.status!=="done" ? '<div class="row"><button class="done" onclick="openProof('+t.id+',\''+esc(t.title).replace(/'/g,"")+'\')">✅ Isbot bilan yopish</button></div>' : '') +
+    '</div>';
+  }).join("");
+}
+
+function load(){
+  $("list").innerHTML = '<div class="empty">yuklanmoqda…</div>';
+  tgFetch(TASKS + "?status=" + status, {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (!j || !j.ok){ $("list").innerHTML = '<div class="empty">Xato: '+esc((j&&j.error)||'')+'</div>'; return; }
+      render(j.tasks||[]);
+    })
+    .catch(function(e){ $("list").innerHTML = '<div class="empty">Tarmoq xatosi: '+esc(e.message)+'</div>'; });
+}
+
+$("tA").onclick = function(){ status="active"; this.classList.add("on"); $("tD").classList.remove("on"); load(); };
+$("tD").onclick = function(){ status="done"; this.classList.add("on"); $("tA").classList.remove("on"); load(); };
+
+/* ---- isbot oynasi ---- */
+function openProof(id, title){
+  if (!initLen()){ alert("«Ilova» tugmasidan oching"); return; }
+  cur = id; $("sTitle").textContent = "Isbot — " + title;
+  $("sNote").value = ""; blob = null; say("sSt","");
+  $("sheet").classList.add("on");
+  navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"}, audio:false })
+    .then(function(s){ stream=s; $("cam").srcObject=s; $("bRec").hidden=false; say("sSt","Video yozing yoki to‘g‘ridan yuboring"); })
+    .catch(function(e){ say("sSt","Kamera ochilmadi: "+e.message+". Izoh bilan yuborishingiz mumkin","err"); });
+}
+
+function closeProof(){
+  if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; }
+  $("cam").srcObject=null; $("sheet").classList.remove("on");
+  $("bRec").hidden=false; $("bStop").hidden=true;
+}
+
+$("bClose").onclick = closeProof;
+
+$("bRec").onclick = function(){
+  if (!stream){ say("sSt","Kamera yo‘q","err"); return; }
+  chunks = [];
+  var mime = "";
+  if (window.MediaRecorder){
+    if (MediaRecorder.isTypeSupported("video/mp4")) mime="video/mp4";
+    else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime="video/webm;codecs=vp9";
+    else if (MediaRecorder.isTypeSupported("video/webm")) mime="video/webm";
+  }
+  try { rec = mime ? new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1200000}) : new MediaRecorder(stream); }
+  catch(e){ say("sSt","Yozib bo‘lmadi: "+e.message,"err"); return; }
+  rec.ondataavailable = function(ev){ if (ev.data && ev.data.size) chunks.push(ev.data); };
+  rec.onstop = function(){
+    blob = new Blob(chunks,{type:rec.mimeType||"video/webm"});
+    $("cam").srcObject=null; $("cam").src=URL.createObjectURL(blob); $("cam").controls=true;
+    $("bRec").hidden=true; $("bStop").hidden=true;
+    say("sSt","Video tayyor — «Yuborish»ni bosing","ok");
+  };
+  rec.start(); this.hidden=true; $("bStop").hidden=false; say("sSt","Yozilmoqda…");
+};
+
+$("bStop").onclick = function(){ if (rec && rec.state==="recording") rec.stop(); };
+
+$("bSend").onclick = function(){
+  if (!cur) return;
+  if (!initLen()){ say("sSt","Telegram ma'lumoti yo‘q","err"); return; }
+  var note = $("sNote").value.trim();
+  $("bSend").disabled = true;
+
+  if (blob){
+    var fd = new FormData();
+    fd.append("file", blob, "vazifa." + (blob.type.indexOf("mp4")>=0 ? "mp4":"webm"));
+    fd.append("kind","video");
+    fd.append("purpose","task");
+    fd.append("task_id", cur);
+    fd.append("caption", note);
+    say("sSt","Yuborilmoqda…");
+    tgFetch(UP,{method:"POST",body:fd})
+      .then(function(r){ return r.json().then(function(j){ return {code:r.status,j:j}; }); })
+      .then(function(res){
+        $("bSend").disabled = false;
+        if (res.j && res.j.ok){ say("sSt","✅ Yuborildi — guruhga tushdi","ok"); closeProof(); load(); }
+        else say("sSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
+      })
+      .catch(function(e){ $("bSend").disabled=false; say("sSt","Tarmoq xatosi: "+e.message,"err"); });
+    return;
+  }
+
+  tgFetch(TASKS + "/" + cur + "/done", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({note:note})})
+    .then(function(r){ return r.json().then(function(j){ return {code:r.status,j:j}; }); })
+    .then(function(res){
+      $("bSend").disabled = false;
+      if (res.j && res.j.ok){ say("sSt","✅ Bajarildi","ok"); closeProof(); load(); }
+      else say("sSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
+    })
+    .catch(function(e){ $("bSend").disabled=false; say("sSt","Tarmoq xatosi: "+e.message,"err"); });
+};
+
+/* ---- yangi vazifa ---- */
+$("bCreate").onclick = function(){
+  var title = $("nTitle").value.trim();
+  var picked = [].slice.call(document.querySelectorAll("#staff input:checked"));
+  if (!title){ say("nSt","Vazifa nomini yozing","err"); return; }
+  if (!picked.length){ say("nSt","Kamida bitta xodim tanlang","err"); return; }
+  var names = {};
+  picked.forEach(function(p){ names[p.value] = p.getAttribute("data-name") || ""; });
+  say("nSt","Yuborilmoqda…");
+  this.disabled = true;
+  var self = this;
+  tgFetch(TASKS, {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({title:title, note:$("nNote").value.trim(), deadline:$("nDate").value||null,
+      repeat:$("nRepeat").value, assignees:picked.map(function(p){return p.value;}), names:names})})
+    .then(function(r){ return r.json().then(function(j){ return {code:r.status,j:j}; }); })
+    .then(function(res){
+      self.disabled = false;
+      if (res.j && res.j.ok){
+        say("nSt","✅ Berildi: "+res.j.ids.length+" xodimga","ok");
+        $("nTitle").value=""; $("nNote").value=""; $("nDate").value="";
+        picked.forEach(function(p){ p.checked=false; });
+        status="active"; $("tA").classList.add("on"); $("tD").classList.remove("on"); load();
+      } else say("nSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
+    })
+    .catch(function(e){ self.disabled=false; say("nSt","Tarmoq xatosi: "+e.message,"err"); });
+};
+
+loadMe().then(load);
+</script>
+</body>
+</html>
