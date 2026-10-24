@@ -6,14 +6,44 @@
 <title>Kitoblar ombori — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=6"></script>
+<script src="../assets/tg.js?v=32"></script>
 <link rel="stylesheet" href="../assets/ui.css?v=24">
+<style>
+  .cartcard{margin:14px 0 4px;border:1px solid rgba(255,255,255,.1);border-radius:16px;
+    background:linear-gradient(180deg,rgba(124,92,255,.10),rgba(255,255,255,.02));padding:12px 12px 10px}
+  .cc-head{display:flex;align-items:center;justify-content:space-between;font-weight:600;margin-bottom:8px}
+  .cc-head small{font-weight:400;opacity:.65;font-size:12px}
+  .crow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;
+    border-top:1px solid rgba(255,255,255,.06)}
+  .crow:first-child{border-top:0}
+  .crow .lv{font-size:13px}
+  .crow .lv i{display:block;font-style:normal;font-size:11px;opacity:.55;margin-top:2px}
+  .stepper{display:flex;align-items:center;gap:8px}
+  .stepper button{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);color:#fff;font-size:16px;line-height:1}
+  .stepper .q{min-width:22px;text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+  .stepper .q.zero{opacity:.35;font-weight:400}
+  .cc-foot{display:flex;gap:8px;margin-top:10px}
+  .cc-foot button{flex:1;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.05);color:#fff;font-weight:600;font-size:14px}
+  .cc-foot button.primary{background:#7c5cff;border-color:#7c5cff}
+  .cc-foot button:disabled{opacity:.45}
+  .od-acts{display:flex;gap:8px;margin-top:8px}
+  .od-acts button{flex:1;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.05);color:#fff;font-size:13px;font-weight:600}
+  .od-acts button.ok{background:#16a34a;border-color:#16a34a}
+  .od-acts button.no{background:transparent;color:#fca5a5;border-color:rgba(248,113,113,.35)}
+  .chip.lock{opacity:.35}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111827;
+    color:#fff;padding:10px 14px;border-radius:12px;font:500 13px/1.3 -apple-system,system-ui,sans-serif;
+    z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:88vw;text-align:center}
+</style>
 </head>
 <body>
 <div class="wrap">
   <a class="back" href="../index.html">← Orqaga</a>
   <h1>Kitoblar ombori</h1>
-  <p class="sub">filial qoldiqlari · zakazlar</p>
+  <p class="sub">filial qoldiqlari · savat · zakazlar</p>
 
   <div class="kpis" id="kpis"></div>
   <div class="chips" id="chips"></div>
@@ -33,19 +63,41 @@
 </div>
 <p class="note">Katak: <b>qoldiq</b> / <span style="color:var(--amber)">zakazda</span>. Jadval yon tomonga suriladi.</p>
 
+<h2>🛒 Savat</h2>
+<div class="cartcard">
+  <div class="cc-head"><span>Zakaz: <b id="ccBranch">—</b></span><small id="ccTotal">0 dona</small></div>
+  <div id="cartRows"></div>
+  <div class="cc-foot">
+    <button id="ccClear">Tozalash</button>
+    <button id="ccSend" class="primary" disabled>Zakaz berish</button>
+  </div>
+</div>
+
 <h2>Oxirgi zakazlar</h2>
 <div class="orders" id="orders"></div>
 <p class="note" id="upd"></p>
 </div>
 
 <script>
-const API = "https://maintenance-production-d87e.up.railway.app/api/books";
-const LEVELS = ["A1","A2","B1","B1+","Novice","IELTS Standard","Copybook"];
-let DATA = [], ORDERS = [];
+const BASE = "https://maintenance-production-d87e.up.railway.app";
+const API  = BASE + "/api/books";
+let LEVELS = ["A1","A2","B1","B1+","Novice","IELTS Standard","Copybook"];
+let DATA = [], ORDERS = [], ME = {manager:false, coordinator:false, branch:null};
+let CART = {}, BR = null, VIEW = "all";
 
 const sum = a => a.reduce((x,y)=>x+y,0);
 const fmt = n => (n||0).toLocaleString("ru-RU");
 const ST = {"zakaz berildi":"yangi","qabul qilindi":"qabul qilindi","bekor qilindi":"bekor"};
+const canManage = () => !!(ME.manager || ME.coordinator);
+const allowed = () => ME.manager ? DATA.map(d=>d.branch)
+  : (ME.branches && ME.branches.length ? ME.branches : [ME.branch].filter(Boolean));
+
+function toast(msg){
+  const d = document.createElement("div");
+  d.className = "toast"; d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 2600);
+}
 
 function kpis(){
   const stock = sum(DATA.flatMap(d=>d.stock));
@@ -70,55 +122,151 @@ function rows(filter){
   }).join("");
 }
 
+function bestBranch(){
+  return ME.branch || (DATA[0] && DATA[0].branch) || null;
+}
+
 function chips(){
   const all = ["all", ...DATA.map(d=>d.branch)];
-  document.getElementById("chips").innerHTML = all.map((b,i)=>
-    `<button class="chip${i===0?' on':''}" data-b="${b}">${b==="all"?"Barchasi":b}</button>`
-  ).join("");
+  document.getElementById("chips").innerHTML = all.map((b,i)=>{
+    const lock = (b!=="all" && !allowed().includes(b));
+    return `<button class="chip${((VIEW===b)||(i===0&&VIEW==="all"))?' on':''}${lock?' lock':''}" data-b="${b}">${b==="all"?"Barchasi":b}</button>`;
+  }).join("");
   document.querySelectorAll(".chip").forEach(btn=>btn.onclick=()=>{
-    document.querySelectorAll(".chip").forEach(b=>b.classList.remove("on"));
+    const b = btn.dataset.b;
+    if(b!=="all" && !allowed().includes(b)){ toast("Faqat o'z filialingiz"); return; }
+    VIEW = b;
+    document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
     btn.classList.add("on");
-    rows(btn.dataset.b);
+    rows(b);
+    if(b!=="all"){ BR = b; renderCart(); }
   });
+}
+
+function renderCart(){
+  const br = BR || bestBranch();
+  BR = br;
+  document.getElementById("ccBranch").textContent = br || "—";
+  const d = DATA.find(x=>x.branch===br);
+  document.getElementById("cartRows").innerHTML = LEVELS.map((lv,i)=>{
+    const q = CART[lv] || 0;
+    const st = d ? d.stock[i] : 0;
+    return `<div class="crow">
+      <div class="lv">${lv}<i>qoldiq: ${st}</i></div>
+      <div class="stepper" data-lv="${lv}">
+        <button data-d="-1">−</button>
+        <span class="q${q?'':' zero'}">${q}</span>
+        <button data-d="1">+</button>
+      </div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".stepper").forEach(sp=>{
+    const lv = sp.dataset.lv;
+    sp.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      const n = (CART[lv]||0) + Number(b.dataset.d);
+      if(n<=0) delete CART[lv]; else CART[lv] = Math.min(n, 999);
+      renderCart();
+    });
+  });
+  const total = sum(Object.values(CART));
+  document.getElementById("ccTotal").textContent = total + " dona";
+  document.getElementById("ccSend").disabled = total===0 || !br;
+}
+
+async function sendOrder(){
+  const btn = document.getElementById("ccSend");
+  const total = sum(Object.values(CART));
+  if(!total || !BR) return;
+  btn.disabled = true; btn.textContent = "Yuborilmoqda…";
+  try{
+    const j = await tgJson("/api/books/order", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({branch: BR, items: CART})
+    });
+    if(!j.ok) throw new Error(j.error || ("HTTP " + (j._status||"")));
+    toast("✅ Zakaz #" + j.id + " yuborildi");
+    CART = {}; renderCart();
+    await load();
+  }catch(e){
+    toast("Xato: " + e.message);
+  }finally{
+    btn.textContent = "Zakaz berish";
+    btn.disabled = sum(Object.values(CART))===0;
+  }
+}
+
+async function act(kind, id){
+  try{
+    const j = await tgJson("/api/books/" + kind, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({id: id})
+    });
+    if(!j.ok) throw new Error(j.error || ("HTTP " + (j._status||"")));
+    toast(kind==="receive" ? "✅ Qabul qilindi, qoldiq yangilandi" : "Bekor qilindi");
+    await load();
+  }catch(e){ toast("Xato: " + e.message); }
 }
 
 function orders(){
   const el = document.getElementById("orders");
   if(!ORDERS.length){ el.innerHTML = `<div class="note">Hozircha zakaz yo‘q.</div>`; return; }
-  el.innerHTML = ORDERS.slice(0,8).map(o=>{
+  el.innerHTML = ORDERS.slice(0,12).map(o=>{
     const items = o.items.map(i=>`${i.level} ×${i.qty}`).join(", ");
     const st = ST[o.status] || o.status;
     const cls = st==="yangi" ? "new" : st==="qabul qilindi" ? "done" : "";
+    const canRecv = st==="yangi" && canManage();
+    const canCancel = st==="yangi" && (canManage() || o.created_by === (ME.id||null));
+    const acts = (canRecv || canCancel) ? `<div class="od-acts">
+        ${canRecv ? `<button class="ok" data-act="receive" data-id="${o.id}">✅ Qabul qilindi</button>` : ""}
+        ${canCancel ? `<button class="no" data-act="cancel" data-id="${o.id}">✕ Bekor</button>` : ""}
+      </div>` : "";
     return `<div class="order">
-      <div class="od-top"><b>${o.branch}</b><span class="st ${cls}">${st}</span></div>
+      <div class="od-top"><b>#${o.id} · ${o.branch}</b><span class="st ${cls}">${st}</span></div>
       <div class="od-items">${items}</div>
       <div class="od-date">${o.created_at}</div>
+      ${acts}
     </div>`;
   }).join("");
+  el.querySelectorAll("button[data-act]").forEach(b=>
+    b.onclick = () => act(b.dataset.act, Number(b.dataset.id)));
 }
 
 async function load(){
   try{
     const r = await tgFetch(API, {cache:"no-store"});
-    if(!r.ok) throw new Error(r.status);
+    if(!r.ok) throw new Error("HTTP " + r.status);
     const j = await r.json();
-    DATA = j.branches.map(b=>({
+    if(j.levels && j.levels.length) LEVELS = j.levels;
+    DATA = (j.branches || []).map(b=>({
       branch: b,
       stock: LEVELS.map(lv => (j.stock[b] && j.stock[b][lv]) || 0),
-      ordered: LEVELS.map(lv => j.orders.filter(o=>o.status==="zakaz berildi" && o.branch===b)
+      ordered: LEVELS.map(lv => (j.orders||[]).filter(o=>o.status==="zakaz berildi" && o.branch===b)
                     .flatMap(o=>o.items).filter(i=>i.level===lv)
                     .reduce((s,i)=>s+Number(i.qty),0))
     }));
     ORDERS = j.orders || [];
     document.getElementById("upd").textContent = j.updated_at ? "yangilandi: " + j.updated_at : "";
-    kpis(); chips(); rows("all"); orders();
+    kpis(); chips(); rows(VIEW); renderCart(); orders();
   }catch(e){
     document.getElementById("orders").innerHTML =
       `<div class="note">Baza bilan aloqa yo‘q (${e.message}).</div>`;
   }
 }
 
-load();
+async function boot(){
+  try{
+    const me = await tgJson("/api/webapp/me");
+    if(me && me.ok) ME = me;
+  }catch(e){}
+  BR = bestBranch();
+  document.getElementById("ccSend").onclick = sendOrder;
+  document.getElementById("ccClear").onclick = () => { CART = {}; renderCart(); };
+  await load();
+  if(!BR) BR = bestBranch();
+  renderCart();
+}
+
+boot();
 </script>
 </body>
 </html>
