@@ -6,7 +6,7 @@
 <title>Xona rasmlari — TMT</title>
 <link rel="stylesheet" href="../style.css?v=23">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=5"></script>
+<script src="../assets/tg.js?v=6"></script>
 <link rel="stylesheet" href="../assets/ui.css?v=24">
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
@@ -168,7 +168,11 @@ function load(){
   tgJson(url).then(function(j){
     LOADING = false;
     if (!j.ok){
-      $("list").innerHTML = '<div class="empty">Xato: ' + esc(j.error || j._status || "—") + "</div>";
+      if (j._status === 401 || j._status === 403){
+        $("list").innerHTML = '<div class="empty">Telegram ma\'lumot yo\u2018q — ilovani botdagi <b>Ilova</b> tugmasidan oching.</div>';
+      } else {
+        $("list").innerHTML = '<div class="empty">Xato: ' + esc(j.error || j._status || "—") + "</div>";
+      }
       return;
     }
     drawBranches(j.branches || []);
@@ -182,7 +186,7 @@ function load(){
 $("dpick").value = DATE;
 $("dpick").onchange = function(){ DATE = $("dpick").value || todayISO(); drawDays(); load(); };
 drawDays();
-load();
+if (window.tgReady) window.tgReady(function(){ load(); }); else load();
 </script>
 </body>
 </html>
