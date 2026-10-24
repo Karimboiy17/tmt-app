@@ -38,6 +38,19 @@
   .sheet .save{width:100%;margin-top:16px;padding:12px;border-radius:11px;border:0;background:var(--acc);color:#000;font-size:15px;font-weight:600}
   .sheet .close{float:right;background:none;border:0;color:var(--dim);font-size:20px;line-height:1}
   .sheet .msg{font-size:13px;margin-top:10px;color:var(--dim)}
+  .wr{padding:10px 0;border-bottom:1px solid var(--line)}
+  .wr:last-child{border:0}
+  .wn{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;margin-bottom:8px}
+  .ws{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--dim)}
+  .ws.open{color:#3ddc84;border-color:#3ddc84}
+  .ws.shut{color:#e0a832;border-color:#e0a832}
+  .wic{display:flex;align-items:center;gap:6px;margin-bottom:8px;color:var(--dim)}
+  .wic input[type=time]{flex:1;padding:8px;border-radius:9px;border:1px solid var(--line);
+    background:transparent;color:inherit;font-size:14px;font-family:inherit}
+  .wrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .wt{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+  .wsv{padding:8px 12px;border-radius:9px;border:0;background:var(--acc);color:#000;font-size:13px;font-weight:600}
+  .wmsg{font-size:12px;margin-top:6px;color:var(--dim)}
 </style>
 <link rel="stylesheet" href="../assets/ui.css?v=24">
 </head>
@@ -51,6 +64,7 @@
     <h3>Kutayotganlar</h3><div id="pend"></div>
   </div>
   <div class="card2"><h3>Filiallar</h3><div id="brs"></div></div>
+  <div class="card2"><h3>Tekshiruv vaqti</h3><div id="wins"><div class="empty">yuklanmoqda…</div></div></div>
   <div class="card2"><h3>Koordinatorlar</h3><div id="coords"></div></div>
   <div class="card2">
     <h3>Xodimlar</h3>
@@ -200,6 +214,7 @@ function load(){
     BRANCH_LIST = (j.branches || []).map(function(b){ return b.name; });
     renderStaff();
     renderPending();
+    loadWindows();
 
     document.getElementById("brs").innerHTML = (j.branches || []).map(function(b){
       var pct = b.rooms ? Math.round(b.done / b.rooms * 100) : 0;
@@ -219,6 +234,59 @@ function load(){
   }).catch(function(e){
     document.getElementById("who").textContent = "tarmoq xatosi";
   });
+}
+
+// ---------- tekshiruv vaqti ----------
+var WINS = [];
+
+function loadWindows(){
+  tgJson("/api/tmt/check-window").then(function(j){
+    var el = document.getElementById("wins");
+    if (!j || !j.ok){ el.innerHTML = '<div class="empty">' + esc((j && j.error) || "xato") + '</div>'; return; }
+    WINS = j.windows || [];
+    if (!WINS.length){ el.innerHTML = '<div class="empty">filial yo‘q</div>'; return; }
+    el.innerHTML = WINS.map(function(w, i){
+      var st = !w.enabled ? "cheklovsiz" : (w.open ? "ochiq" : "yopiq");
+      var kls = w.enabled ? (w.open ? "open" : "shut") : "";
+      return '<div class="wr" data-i="' + i + '">' +
+        '<div class="wn"><span>' + esc(w.branch) + '</span><span class="ws ' + kls + '">' + st + '</span></div>' +
+        '<div class="wic"><input type="time" class="t1" value="' + esc(w.start) + '"><span>–</span>' +
+        '<input type="time" class="t2" value="' + esc(w.end) + '"></div>' +
+        '<div class="wrow"><label class="wt"><input type="checkbox" class="on2"' +
+        (w.enabled ? ' checked' : '') + '> cheklov yoniq</label>' +
+        (w.can_edit ? '<button class="wsv">Saqlash</button>' : '<span class="ws">faqat menejer</span>') +
+        '</div>' +
+        '<div class="wmsg">' + (w.enabled
+            ? ("bugun " + esc(w.start) + "–" + esc(w.end) + " · hozir " + esc(w.now))
+            : "istalgan vaqtda rasm yuklash mumkin") + '</div>' +
+      '</div>';
+    }).join("");
+    Array.prototype.forEach.call(el.querySelectorAll(".wr"), function(row){
+      var btn = row.querySelector(".wsv");
+      if (btn) btn.onclick = function(){ saveWin(parseInt(row.getAttribute("data-i"), 10), row); };
+    });
+  }).catch(function(){
+    document.getElementById("wins").innerHTML = '<div class="empty">tarmoq xatosi</div>';
+  });
+}
+
+function saveWin(i, row){
+  var w = WINS[i];
+  if (!w) return;
+  var body = {branch: w.branch,
+              start: row.querySelector(".t1").value,
+              end: row.querySelector(".t2").value,
+              enabled: row.querySelector(".on2").checked};
+  var m = row.querySelector(".wmsg");
+  m.textContent = "saqlanmoqda…";
+  tgJson("/api/tmt/check-window/set", {method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)})
+    .then(function(j){
+      if (j && j.ok){ m.textContent = "✅ saqlandi"; loadWindows(); }
+      else m.textContent = "xato: " + ((j && j.error) || "?");
+    })
+    .catch(function(e){ m.textContent = "tarmoq xatosi: " + e.message; });
 }
 
 // ---------- kutayotganlar ----------
