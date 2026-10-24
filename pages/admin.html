@@ -39,13 +39,13 @@
   .sheet .close{float:right;background:none;border:0;color:var(--dim);font-size:20px;line-height:1}
   .sheet .msg{font-size:13px;margin-top:10px;color:var(--dim)}
 </style>
+<link rel="stylesheet" href="../assets/ui.css?v=24">
 </head>
 <body>
 <div class="wrap">
-  <div class="head">
-    <a class="back" href="../index.html">‹</a>
-    <div><div class="ttl">🛠 Admin</div><div class="sub" id="who">—</div></div>
-  </div>
+  <a class="back" href="../index.html">← Orqaga</a>
+  <div class="ttl">Admin</div>
+  <div class="sub" id="who">—</div>
 
   <div class="card2" id="pendCard" style="display:none">
     <h3>Kutayotganlar</h3><div id="pend"></div>
@@ -211,7 +211,8 @@ function load(){
 
     var cs = j.coordinators || [];
     document.getElementById("coords").innerHTML = cs.length ? cs.map(function(c){
-      return '<div class="br"><div style="flex:1"><div class="nm">' + esc(c.name) + '</div>' +
+      return '<div class="br"><div class="av">' + esc((c.name||'?').slice(0,1).toUpperCase()) + '</div>' +
+        '<div style="flex:1"><div class="nm">' + esc(c.name) + '</div>' +
         '<div class="mt">' + esc(c.branch) + '</div></div>' +
         '<span class="tag c">koordinator</span></div>';
     }).join("") : '<div class="empty">koordinator biriktirilmagan</div>';

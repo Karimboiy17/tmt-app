@@ -7,19 +7,18 @@
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
 <script src="../assets/tg.js?v=5"></script>
+<link rel="stylesheet" href="../assets/ui.css?v=24">
 </head>
 <body>
-<header class="top">
+<div class="wrap">
+  <a class="back" href="../index.html">← Orqaga</a>
   <h1>Kitoblar ombori</h1>
-  <span class="sub">filial qoldiqlari · zakazlar</span>
-  <span class="spacer"></span>
-  <a class="back" href="../index.html">← orqaga</a>
-</header>
+  <p class="sub">filial qoldiqlari · zakazlar</p>
 
-<div class="kpis" id="kpis"></div>
-<div class="chips" id="chips"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="chips" id="chips"></div>
 
-<div class="tablewrap">
+  <div class="tablewrap">
   <table class="books">
     <thead>
       <tr>
@@ -37,6 +36,7 @@
 <h2>Oxirgi zakazlar</h2>
 <div class="orders" id="orders"></div>
 <p class="note" id="upd"></p>
+</div>
 
 <script>
 const API = "https://maintenance-production-d87e.up.railway.app/api/books";
