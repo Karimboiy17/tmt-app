@@ -81,9 +81,15 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
 function say(msg,cls){ var e=$("sSt"); e.textContent=msg||""; e.className="st"+(cls?" "+cls:""); }
 
 function initLen(){ return window.tgInitLen ? tgInitLen() : 0; }
-tgWaitInit(function(d){
-  if (!d) $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
-});
+function boot(){
+  if (!initLen()){
+    $("who").textContent = "⚠️ Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching";
+    $("list").innerHTML = '<div class="empty">Bu sahifa Telegram ichidan ochilishi kerak</div>';
+    tgWaitInit(function(d){ if (d){ $("list").innerHTML = ''; load(); } });
+    return;
+  }
+  load();
+}
 
 function wline(br){
   var w = WINDOWS[br];
@@ -214,7 +220,7 @@ function doReset(){
 }
 $("bReset").onclick = doReset;
 
-load();
+boot();
 </script>
 </body>
 </html>
