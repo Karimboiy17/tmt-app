@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Hisobotlar</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .tabs{display:flex;gap:6px;margin:12px 0}
+  .tabs button{flex:1;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:13px}
+  .tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+  .card2{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+  .card2 h3{margin:0 0 10px;font-size:13px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .big{font-size:22px;font-weight:700}
+  .big i{font-size:12px;font-weight:400;color:var(--dim);font-style:normal;margin-left:6px}
+  .row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border:0}
+  .row b{font-weight:600}
+  .warn{color:#f0a13a}
+  .it{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .it:last-child{border:0}
+  .it .rk{width:22px;text-align:center;font-size:13px;color:var(--dim)}
+  .it .nm{flex:1;font-size:14px}
+  .it .sc{font-size:13px;color:var(--dim)}
+  .send{width:100%;padding:13px;border-radius:12px;border:0;background:var(--acc);color:#fff;font-size:15px;font-weight:600;margin-top:6px}
+  .send[disabled]{opacity:.5}
+  .empty{color:var(--dim);font-size:14px;text-align:center;padding:18px 0}
+  #msg{text-align:center;font-size:12px;color:var(--dim);margin-top:8px;min-height:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <a class="back" href="../index.html">‹</a>
+    <div><div class="ttl">📊 Hisobotlar</div><div class="sub" id="who">—</div></div>
+  </div>
+
+  <div class="tabs">
+    <button data-p="today" class="on">Bugun</button>
+    <button data-p="week">Hafta</button>
+    <button data-p="month">Oy</button>
+  </div>
+
+  <div class="card2"><h3>Davomat</h3><div id="att"></div></div>
+  <div class="card2"><h3>Xonalar</h3><div id="rooms"></div></div>
+  <div class="card2"><h3>Vazifalar</h3><div id="tasks"></div></div>
+  <div class="card2"><h3>Eng faol</h3><div id="top"></div></div>
+
+  <button class="send" id="send" style="display:none">Guruhga yuborish</button>
+  <div id="msg"></div>
+</div>
+
+<script src="../assets/tg.js?v=3"></script>
+<script>
+var period = "today", last = null;
+
+document.querySelectorAll(".tabs button").forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll(".tabs button").forEach(function(x){ x.classList.remove("on"); });
+    b.classList.add("on");
+    period = b.dataset.p;
+    load();
+  };
+});
+
+document.getElementById("send").onclick = function(){
+  var btn = this, m = document.getElementById("msg");
+  if (!confirm("Hisobotni guruhga yuboraymi?")) return;
+  btn.disabled = true; m.textContent = "yuborilmoqda…";
+  tgJson("/api/tmt/report/send", {method: "POST"})
+    .then(function(j){
+      m.textContent = j && j.ok ? "✅ yuborildi" : "Xato: " + ((j && j.error) || "?");
+    })
+    .catch(function(e){ m.textContent = "Xato: " + e.message; })
+    .then(function(){ btn.disabled = false; });
+};
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+}); }
+
+function rows(obj, fmt){
+  var k = Object.keys(obj || {});
+  if (!k.length) return '<div class="empty">ma’lumot yo‘q</div>';
+  return k.map(function(x){ return '<div class="row"><span>' + esc(x) + '</span><b>' + fmt(obj[x], x) + '</b></div>'; }).join("");
+}
+
+function load(){
+  var A = document.getElementById("att"), R = document.getElementById("rooms"),
+      T = document.getElementById("tasks"), P = document.getElementById("top");
+  [A, R, T, P].forEach(function(el){ el.innerHTML = '<div class="empty">yuklanmoqda…</div>'; });
+
+  tgJson("/api/tmt/report?period=" + encodeURIComponent(period))
+    .then(function(j){
+      last = j;
+      document.getElementById("who").textContent = j.date + " · " + ({today:"kunlik", week:"haftalik", month:"oylik"}[j.period] || "");
+
+      A.innerHTML = '<div class="big">' + (j.att_total || 0) + '<i>kishi kirdi</i></div>'
+        + rows(j.att, function(v){ return v; });
+
+      var tot = 0, dn = 0;
+      Object.keys(j.branches || {}).forEach(function(b){ tot += j.branches[b].total; dn += j.branches[b].done; });
+      var pc = tot ? Math.round(dn * 100 / tot) : 0;
+      R.innerHTML = '<div class="big">' + dn + '/' + tot + '<i>' + pc + '%</i></div>'
+        + rows(j.branches, function(v){ return v.done + "/" + v.total; });
+
+      var t = j.tasks || {};
+      T.innerHTML = '<div class="row"><span>Bajarilgan</span><b>' + (t.done || 0) + '</b></div>'
+        + '<div class="row"><span>Faol</span><b>' + (t.active || 0) + '</b></div>'
+        + '<div class="row"><span>Kechikkan</span><b class="' + (t.overdue ? "warn" : "") + '">' + (t.overdue || 0) + '</b></div>'
+        + (t.overdue_list || []).map(function(x){
+            return '<div class="row"><span>⚠️ ' + esc(x.title) + '<br><small>' + esc(x.name) + ' · ' + esc(x.deadline) + '</small></span></div>';
+          }).join("");
+
+      var top = j.top || [];
+      P.innerHTML = top.length ? top.map(function(x, i){
+        return '<div class="it"><div class="rk">' + (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1)) + '</div>'
+          + '<div class="nm">' + esc(x.name) + '</div><div class="sc">' + x.score + '</div></div>';
+      }).join("") : '<div class="empty">hali harakat yo‘q</div>';
+
+      if (j.error) document.getElementById("who").textContent += " · ⚠️ " + j.error;
+      document.getElementById("send").style.display = j.can_send ? "block" : "none";
+    })
+    .catch(function(e){
+      [A, R, T, P].forEach(function(el){ el.innerHTML = '<div class="empty">Xato: ' + esc(e.message) + '</div>'; });
+    });
+}
+
+tgReady(load);
+</script>
+</body>
+</html>

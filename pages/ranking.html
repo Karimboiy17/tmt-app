@@ -6,7 +6,7 @@
 <title>Reyting — TMT</title>
 <link rel="stylesheet" href="../style.css?v=1">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=2"></script>
+<script src="../assets/tg.js?v=3"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -86,7 +86,7 @@ function load(){
   var C = document.getElementById("coords");
   L.innerHTML = '<div class="empty">yuklanmoqda…</div>';
   C.innerHTML = '<div class="empty">yuklanmoqda…</div>';
-  tgFetch("/api/tmt/ranking?period=" + encodeURIComponent(period))
+  tgJson("/api/tmt/ranking?period=" + encodeURIComponent(period))
     .then(function(j){
       var rows = (j && j.rows) || [];
       var coords = (j && j.coords) || [];

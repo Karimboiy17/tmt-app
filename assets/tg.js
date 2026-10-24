@@ -41,6 +41,17 @@
     return fetch(url, opts);
   };
 
+  // JSON qaytaradi (fetch Response emas) — sahifalarda to'g'ridan-to'g'ri ishlatiladi.
+  window.tgJson = function (url, opts) {
+    return window.tgFetch(url, opts).then(function (r) {
+      return r.json().then(function (j) {
+        j = j || {};
+        j._status = r.status;
+        return j;
+      });
+    });
+  };
+
   // initData tayyor bo'lgach cb(data) chaqiradi (yoki 3s dan keyin "" bilan).
   window.tgReady = function (cb) {
     if (pick()) return cb(pick());
