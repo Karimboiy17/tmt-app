@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kitoblar ombori — TMT</title>
-<link rel="stylesheet" href="../style.css?v=47">
+<link rel="stylesheet" href="../style.css?v=48">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=47"></script>
-<script src="../assets/notif.js?v=47"></script>
-<link rel="stylesheet" href="../assets/ui.css?v=47">
+<script src="../assets/tg.js?v=48"></script>
+<script src="../assets/notif.js?v=48"></script>
+<link rel="stylesheet" href="../assets/ui.css?v=48">
 <style>
   .order.deep{border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.35);border-radius:14px}
   .cartcard{margin:14px 0 4px;border:1px solid rgba(255,255,255,.1);border-radius:16px;
@@ -90,8 +90,9 @@ let CART = {}, BR = null, VIEW = "all";
 const sum = a => a.reduce((x,y)=>x+y,0);
 const fmt = n => (n||0).toLocaleString("ru-RU");
 const ST = {"zakaz berildi":"yangi","qabul qilindi":"qabul qilindi","bekor qilindi":"bekor"};
-const canManage = () => !!(ME.manager || ME.coordinator);
-const allowed = () => ME.manager ? DATA.map(d=>d.branch)
+const isAll = () => !!(ME.manager || (ME.perms && ME.perms.manage));
+const canManage = () => !!(ME.manager || ME.coordinator || (ME.perms && ME.perms.manage));
+const allowed = () => isAll() ? DATA.map(d=>d.branch)
   : (ME.branches && ME.branches.length ? ME.branches : [ME.branch].filter(Boolean));
 
 function toast(msg){
