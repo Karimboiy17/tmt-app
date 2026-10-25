@@ -344,10 +344,10 @@ body.home footer{
 
 
 /* ===== iOS 18 / Material 3 home cards (v19) ===== */
-body.home{background:#06070a;color:#f4effa}
+body.home{background:#170818;color:#f4effa}
 body.home .wallpaper{opacity:1;background:
-  radial-gradient(120% 70% at 50% -12%, #141822 0%, #0a0c11 42%, #06070a 78%),
-  linear-gradient(180deg,#090b10 0%,#040507 100%)}
+  radial-gradient(120% 70% at 50% -12%, #3a0d35 0%, #240a24 42%, #170818 78%),
+  linear-gradient(180deg,#1c0a1d 0%,#120614 100%)}
 body.home .wallpaper::after{content:"";position:absolute;inset:0;background:radial-gradient(90% 50% at 50% 0%,rgba(231,238,97,.10),transparent 62%)}
 body.home .wallpaper,body.home .scrim{display:none}
 body.home .hero{padding:18px 18px 8px;display:flex;align-items:center;justify-content:space-between;gap:12px}

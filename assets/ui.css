@@ -5,8 +5,8 @@
    =========================================================== */
 
 :root{
-  --bg:#06070a;
-  --bg2:#0a0c11;
+  --bg:#170818;
+  --bg2:#1e0a1f;
   --card:rgba(255,255,255,.065);
   --card2:rgba(255,255,255,.10);
   --line:rgba(231,238,97,.12);
@@ -39,8 +39,8 @@ body{
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
   background:
-    radial-gradient(120% 70% at 50% -12%, #141822 0%, #0a0c11 42%, #06070a 78%) fixed,
-    linear-gradient(180deg,#090b10 0%,#040507 100%) fixed;
+    radial-gradient(120% 70% at 50% -12%, #3a0d35 0%, #240a24 42%, #170818 78%) fixed,
+    linear-gradient(180deg,#1c0a1d 0%,#120614 100%) fixed;
   min-height:100vh;
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
