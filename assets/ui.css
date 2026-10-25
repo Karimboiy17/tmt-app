@@ -328,7 +328,18 @@ button.done{
 /* proof sheet */
 #sheet .sheet,#sheet{overscroll-behavior:contain}
 video{width:100%;border-radius:var(--r-md);background:#000;display:block}
-label input[type=checkbox]{width:auto;margin-right:8px;accent-color:#e7ee61}
+/* checkbox/radio: native ko'rinish qaytariladi (umumiy input qoidasi ularni ko'rinmas qilib qo'yardi) */
+input[type=checkbox],input[type=radio]{
+  -webkit-appearance:auto !important;appearance:auto !important;
+  width:22px !important;height:22px !important;
+  padding:0 !important;margin:0 10px 0 0 !important;
+  background:none !important;border:0 !important;border-radius:6px !important;
+  accent-color:#e7ee61 !important;flex:0 0 auto !important;box-shadow:none !important;
+}
+input[type=radio]{border-radius:50% !important}
+label:has(> input[type=checkbox]:checked),label:has(> input[type=radio]:checked){
+  background:rgba(231,238,97,.12);border-radius:10px;
+}
 label{display:block;padding:7px 0;font-size:14px;color:var(--tx)}
 
 /* ---------- v2 refinements (QA round 1) ---------- */

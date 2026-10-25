@@ -34,7 +34,15 @@
     border-radius:10px;color:var(--tx);padding:10px;font-family:inherit;font-size:14px;margin-bottom:8px}
   .form textarea{min-height:60px}
   .staff{max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px;margin-bottom:8px}
-  .staff label{display:flex;gap:8px;align-items:center;font-size:14px;padding:6px}
+  .staff label{display:flex;gap:10px;align-items:center;font-size:14px;padding:11px 12px;margin:0 0 6px;
+    border:1px solid transparent;border-radius:11px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:background .12s,border-color .12s}
+  .staff label:last-child{margin-bottom:0}
+  .staff label:has(input:checked){background:rgba(231,238,97,.13);border-color:rgba(231,238,97,.5)}
+  .staff label:has(input:checked) .nm{font-weight:650;color:#f4f7cf}
+  .staff .nm{flex:1 1 auto;min-width:0}
+  .staff .br{flex:0 0 auto;color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%}
+  .pickcnt{font-size:12.5px;color:var(--dim);padding:0 2px 8px}
   .form .send{width:100%;background:var(--ok);color:#08110c;border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700}
   #sheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
   #sheet.on{display:flex}
@@ -71,6 +79,7 @@
       <option value="daily">Har kuni</option>
       <option value="weekly">Har hafta</option>
     </select>
+    <div class="pickcnt" id="staffCnt">Xodim tanlanmagan</div>
     <div class="staff" id="staff"></div>
     <button class="send" id="bCreate">Vazifani berish</button>
     <div class="st" id="nSt"></div>
@@ -138,10 +147,19 @@ function loadStaff(){
       if (!j || !j.ok) return;
       staffList = j.staff || [];
       $("staff").innerHTML = staffList.map(function(s){
-        return '<label><input type="checkbox" value="'+s.cid+'" data-name="'+esc(s.name)+'"> '+
-               esc(s.name) + (s.branch ? ' <span style="color:var(--dim)">· '+esc(s.branch)+'</span>' : '') + '</label>';
+        return '<label><input type="checkbox" value="'+s.cid+'" data-name="'+esc(s.name)+'">'+
+               '<span class="nm">'+esc(s.name)+'</span>'+
+               (s.branch ? '<span class="br">'+esc(s.branch)+'</span>' : '') + '</label>';
       }).join("") || '<div style="font-size:13px;color:var(--dim);padding:6px">Xodim topilmadi</div>';
+      $("staff").addEventListener("change", staffCount);
+      staffCount();
     }).catch(function(){});
+}
+
+function staffCount(){
+  var n = document.querySelectorAll("#staff input:checked").length;
+  var el = $("staffCnt");
+  if (el) el.textContent = n ? ("Tanlandi: " + n + " xodim") : "Xodim tanlanmagan";
 }
 
 function deadlineTag(t){
