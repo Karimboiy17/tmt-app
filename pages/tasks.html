@@ -313,6 +313,7 @@ $("bSend").onclick = function(){
 /* ---- isbotni ko'rish ---- */
 function openProofView(el){
   var url = el.getAttribute("data-pv") || "";
+  if (url.charAt(0) === "/" && window.tgFull) url = window.tgFull(url);
   var kind = el.getAttribute("data-kind") || "video";
   var note = "";
   try { note = decodeURIComponent(el.getAttribute("data-note") || ""); } catch(e){}

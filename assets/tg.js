@@ -12,6 +12,8 @@
     return (typeof url === "string" && url.charAt(0) === "/") ? BASE + url : url;
   }
 
+  try { window.tgFull = full; } catch (e) {}
+
   function live() {
     try {
       var tg = window.Telegram && window.Telegram.WebApp;
