@@ -403,3 +403,15 @@ main.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 16px 
 
 body.home #ft{padding:8px 16px calc(26px + env(safe-area-inset-bottom,0px));text-align:center;font-size:12px;color:rgba(240,232,248,.45)}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:active,.card.pressed{transform:none}}
+
+/* --- bildirishnoma: kafel ustidagi o'qilmagan soni --- */
+.card .badge{position:absolute;top:9px;right:11px;min-width:21px;height:21px;padding:0 6px;
+  border-radius:11px;background:#ff4d5e;color:#fff;font:700 11.5px/21px -apple-system,system-ui,sans-serif;
+  text-align:center;letter-spacing:.2px;box-shadow:0 3px 10px rgba(255,77,94,.5);z-index:3}
+/* --- bildirishnoma: bo'lim ichidagi "yangi" satri --- */
+.notifbar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:11px 13px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,77,94,.22),rgba(185,140,245,.18));
+  border:1px solid rgba(255,120,140,.35);color:#ffe9ee;font:600 13.5px/1.35 -apple-system,system-ui,sans-serif}
+.notifbar span{flex:1}
+.notifbar i{font-style:normal;font-size:12px;color:rgba(255,233,238,.65);padding:2px 6px;
+  border-radius:8px;background:rgba(255,255,255,.08);cursor:pointer}

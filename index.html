@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2b0625">
 <title>IELTS ZONE — TMT</title>
-<link rel="stylesheet" href="style.css?v=37">
+<link rel="stylesheet" href="style.css?v=38">
 <script src="assets/telegram-web-app.js"></script>
-<script src="assets/tg.js?v=37"></script>
+<script src="assets/tg.js?v=38"></script>
 </head>
 <body class="home">
 <div class="wallpaper"></div>
@@ -25,11 +25,11 @@
 
 <main class="cards">
   <div class="clock"><span class="t" id="ctime">--:--</span></div>
-  <a class="card lead" data-ac="lime" href="pages/tasks.html">
+  <a class="card lead" data-ac="lime" data-sec="tasks" href="pages/tasks.html">
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M9 4h6M8 4v2M16 4v2M5 7h14v13H5z"/><path d="M8.6 12.6l2 2 4-4"/></svg></span>
     <span class="txt"><b>Vazifalar</b><i>topshiriq · muddat · isbot</i></span><span class="ch">›</span>
   </a>
-  <a class="card" data-ac="violet" href="pages/rooms.html">
+  <a class="card" data-ac="violet" data-sec="rooms" href="pages/rooms.html">
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M5 21V4h9v17"/><path d="M14 9h5v12"/><path d="M11.2 12.5h.01"/></svg></span>
     <span class="txt"><b>Xonalar</b><i>kunlik nazorat</i></span>
   </a>
@@ -49,7 +49,7 @@
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M4 20V6M4 20h16"/><path d="M8 20v-6M12 20V9M16 20v-4"/></svg></span>
     <span class="txt"><b>Hisobot</b><i>kun · hafta · oy</i></span>
   </a>
-  <a class="card" data-ac="coral" href="pages/books.html">
+  <a class="card" data-ac="coral" data-sec="books" href="pages/books.html">
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M8 4v13"/></svg></span>
     <span class="txt"><b>Kitoblar</b><i>qoldiq · 7 daraja</i></span>
   </a>
@@ -65,6 +65,23 @@
 
 <footer id="ft">IELTS ZONE · @tmtzone_bot</footer>
 
+<script>
+(function(){
+  // Deep link: start_param (menyu tugmasi: t.me/tmtzone_bot/app?startapp=tasks)
+  // yoki ?go=tasks&id=17 (botdagi tugma) -> kerakli sahifani darhol ochadi.
+  var OK = {tasks:1, rooms:1, books:1, photos:1, attendance:1, ranking:1, reports:1, admin:1, coordinators:1};
+  var sec = "", id = "";
+  try { var sp = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || ""; } catch(e){}
+  try {
+    var q = new URLSearchParams(location.search || "");
+    var raw = (q.get("go") || q.get("startapp") || sp || "").toLowerCase();
+    var m = raw.match(/^([a-z]+)[_-]?(\d*)$/);
+    if (m) { sec = m[1]; id = m[2] || (q.get("id") || ""); }
+    if (!OK[sec]) { sec = ""; id = ""; }
+  } catch(e){}
+  if (sec) location.replace("pages/" + sec + ".html" + (id ? "?id=" + encodeURIComponent(id) : ""));
+})();
+</script>
 <script>
 (function(){
   try{
@@ -83,6 +100,29 @@
   }
   tick(); setInterval(tick, 15000);
 
+  // Bildirishnoma: o'qilmagan sonlar kafel ustida
+  function badges(){
+    if (!window.tgJson) return;
+    window.tgJson("/api/webapp/me").then(function(j){
+      if (!j || !j.ok || !j.counts) return;
+      try {
+        sessionStorage.setItem("tg_me", JSON.stringify({id:j.id, name:j.name, branch:j.branch, manager:j.manager}));
+        if (j.name) document.getElementById("who").textContent = j.name;
+      } catch(e){}
+      Object.keys(j.counts).forEach(function(sec){
+        var card = document.querySelector(".card[data-sec=\"" + sec + "\"]");
+        if (!card) return;
+        var n = +j.counts[sec] || 0, b = card.querySelector(".badge");
+        if (n > 0) {
+          if (!b) { b = document.createElement("span"); b.className = "badge"; card.appendChild(b); }
+          b.textContent = n > 99 ? "99+" : String(n);
+        } else if (b) { b.parentNode.removeChild(b); }
+      });
+    }).catch(function(){});
+  }
+  badges(); setInterval(badges, 60000);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) badges(); });
+
   document.addEventListener("click", function(e){
     const t = e.target.closest(".card");
     if(!t || t.classList.contains("clock")) return;
@@ -93,7 +133,7 @@
 </script>
 <script>
 (function(){try{
- var VER=23, k='tmt_ver';
+ var VER=38, k='tmt_ver';
  fetch('version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
   if(!j||!j.ver) return;
   var have=+(sessionStorage.getItem(k)||0);
