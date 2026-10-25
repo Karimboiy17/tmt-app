@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Davomat — TMT</title>
-<link rel="stylesheet" href="../style.css?v=45">
+<link rel="stylesheet" href="../style.css?v=46">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=45"></script>
+<script src="../assets/tg.js?v=46"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -25,7 +25,7 @@
   .st{margin-top:12px;font-size:14px;color:var(--dim);min-height:20px}
   .st.ok{color:var(--ok)} .st.err{color:#e5484d}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=45">
+<link rel="stylesheet" href="../assets/ui.css?v=46">
 </head>
 <body>
 <div class="wrap">
@@ -55,6 +55,8 @@ var API = "https://maintenance-production-d87e.up.railway.app/api/tmt/upload";
 var cam = document.getElementById("cam");
 var st  = document.getElementById("st");
 var blob = null, rec = null, chunks = [], stream = null;
+var recStart = 0, recSecs = 0, recTick = null, MAXSEC = 60;
+function fmtSec(s){ return Math.floor(s/60) + ":" + ("0" + (s%60)).slice(-2); }
 
 function say(msg, cls){ st.textContent = msg || ""; st.className = "st" + (cls ? " " + cls : ""); }
 
@@ -102,18 +104,26 @@ document.getElementById("bRec").onclick = function () {
 
   rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) chunks.push(ev.data); };
   rec.onstop = function () {
+    clearInterval(recTick);
+    recSecs = Math.min(MAXSEC, Math.max(1, Math.round((Date.now() - recStart) / 1000)));
     blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
     cam.srcObject = null; cam.src = URL.createObjectURL(blob); cam.controls = true;
     document.getElementById("bRec").hidden = true;
     document.getElementById("bStop").hidden = true;
     document.getElementById("bIn").hidden = false;
     document.getElementById("bOut").hidden = false;
-    say("Video tayyor — keldim yoki ketdim tugmasini bosing");
+    say("Video tayyor (" + recSecs + " sek) — keldim yoki ketdim tugmasini bosing");
   };
   rec.start();
   this.hidden = true;
   document.getElementById("bStop").hidden = false;
-  say("Yozilmoqda…");
+  recStart = Date.now(); recSecs = 0;
+  clearInterval(recTick);
+  recTick = setInterval(function () {
+    var s = Math.floor((Date.now() - recStart) / 1000);
+    say("Yozilmoqda… " + fmtSec(s) + " / 1:00");
+    if (s >= MAXSEC && rec && rec.state === "recording") { say("1 daqiqa limit — yozuv to‘xtatildi"); rec.stop(); }
+  }, 500);
 };
 
 document.getElementById("bStop").onclick = function () {
@@ -122,11 +132,13 @@ document.getElementById("bStop").onclick = function () {
 
 function send(purpose, btn) {
   if (!blob) { say("Avval video yozing", "err"); return; }
+  if (recSecs > MAXSEC){ say("Video " + recSecs + " sek — limit 1 daqiqa, qayta yozing", "err"); return; }
   if (!checkCtx()) { say("Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching", "err"); return; }
   var fd = new FormData();
   fd.append("file", blob, "davomat." + ((blob.type.indexOf("mp4") >= 0) ? "mp4" : "webm"));
   fd.append("kind", "video");
   fd.append("purpose", purpose);
+  fd.append("duration", String(recSecs || 0));
   fd.append("caption", document.getElementById("note").value.trim());
 
   ["bIn", "bOut"].forEach(function (id) { document.getElementById(id).disabled = true; });
