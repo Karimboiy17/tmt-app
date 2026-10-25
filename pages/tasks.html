@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vazifalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=43">
+<link rel="stylesheet" href="../style.css?v=44">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=43"></script>
-<script src="../assets/notif.js?v=43"></script>
+<script src="../assets/tg.js?v=44"></script>
+<script src="../assets/notif.js?v=44"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -49,7 +49,7 @@
   #sheet.on{display:flex}
   #pv{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:60}
   #pv.on{display:flex}
-  #pv .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
+  #pv .in{background:var(--panel);width:100%;padding:14px 14px calc(14px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
   #asheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
   #asheet.on{display:flex}
   #asheet .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
@@ -58,7 +58,7 @@
   .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=43">
+<link rel="stylesheet" href="../assets/ui.css?v=44">
 </head>
 <body data-sec="tasks">
 <div class="wrap">
