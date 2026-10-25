@@ -57,8 +57,8 @@
     if (tg) {
       tg.ready();
       tg.expand();
-      tg.setHeaderColor && tg.setHeaderColor("#0f1216");
-      tg.setBackgroundColor && tg.setBackgroundColor("#0f1216");
+      tg.setHeaderColor && tg.setHeaderColor("#2b0625");
+      tg.setBackgroundColor && tg.setBackgroundColor("#170818");
       tg.onEvent && tg.onEvent("viewportChanged", function () { tg.expand && tg.expand(); });
     }
   } catch (e) {}
@@ -136,7 +136,7 @@
 
 /* auto-update guard: sahifalar uchun */
 (function(){try{
- var VER=38, k='tmt_ver';
+ var VER=39, k='tmt_ver';
  fetch('../version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
   if(!j||!j.ver) return;
   var have=+(sessionStorage.getItem(k)||0);
