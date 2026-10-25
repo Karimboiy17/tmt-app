@@ -151,7 +151,7 @@ function loadStaff(){
                '<span class="nm">'+esc(s.name)+'</span>'+
                (s.branch ? '<span class="br">'+esc(s.branch)+'</span>' : '') + '</label>';
       }).join("") || '<div style="font-size:13px;color:var(--dim);padding:6px">Xodim topilmadi</div>';
-      $("staff").addEventListener("change", staffCount);
+      $("staff").onchange = function(){ staffCount(); sayClear(); };
       staffCount();
     }).catch(function(){});
 }
@@ -161,6 +161,9 @@ function staffCount(){
   var el = $("staffCnt");
   if (el) el.textContent = n ? ("Tanlandi: " + n + " xodim") : "Xodim tanlanmagan";
 }
+
+/* eski natija xabari yangi vazifa kiritishni chalg'itmasin */
+function sayClear(){ var el = $("nSt"); if (el && el.textContent) el.textContent = ""; }
 
 function deadlineTag(t){
   if (!t.deadline) return '';
@@ -326,15 +329,22 @@ $("bCreate").onclick = function(){
     .then(function(res){
       self.disabled = false;
       if (res.j && res.j.ok){
-        say("nSt","✅ Berildi: "+res.j.ids.length+" xodimga","ok");
-        $("nTitle").value=""; $("nNote").value=""; $("nDate").value="";
+        var nAssigned = res.j.ids.length;
+        say("nSt","✅ Berildi: "+nAssigned+" xodimga","ok");
+        $("nTitle").value=""; $("nNote").value=""; $("nDate").value=""; $("nRepeat").value="once";
         picked.forEach(function(p){ p.checked=false; });
+        staffCount();
+        setTimeout(function(){ var e=$("nSt");
+          if (e && e.textContent.indexOf("Berildi") !== -1) e.textContent = ""; }, 6000);
         status="active"; $("tA").classList.add("on"); $("tD").classList.remove("on"); load();
       } else say("nSt","Xato: "+((res.j&&res.j.error)||res.code),"err");
     })
     .catch(function(e){ self.disabled=false; say("nSt","Tarmoq xatosi: "+e.message,"err"); });
 };
 
+["nTitle","nNote","nDate"].forEach(function(id){
+  var e = $(id); if (e) e.addEventListener("input", sayClear);
+});
 loadMe().then(load);
 </script>
 </body>
