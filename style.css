@@ -1,6 +1,7 @@
 :root{
-  --bg:#0f1216; --panel:#171c22; --line:#242c34;
-  --tx:#e9eef3; --dim:#8b98a5; --amber:#f5a623; --ok:#3ecf8e;
+  /* ui.css bilan bir xil binafsha palitra (index.html faqat shu faylni yuklaydi) */
+  --bg:#170818; --panel:rgba(255,255,255,.065); --line:rgba(231,238,97,.12);
+  --tx:#f4effa; --dim:rgba(240,232,248,.62); --amber:#e7ee61; --ok:#7ef0b8;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
