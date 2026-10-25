@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vazifalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=41">
+<link rel="stylesheet" href="../style.css?v=42">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=41"></script>
-<script src="../assets/notif.js?v=41"></script>
+<script src="../assets/tg.js?v=42"></script>
+<script src="../assets/notif.js?v=42"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -58,7 +58,7 @@
   .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=41">
+<link rel="stylesheet" href="../assets/ui.css?v=42">
 </head>
 <body data-sec="tasks">
 <div class="wrap">
@@ -313,7 +313,7 @@ $("bSend").onclick = function(){
 /* ---- isbotni ko'rish ---- */
 function openProofView(el){
   var url = el.getAttribute("data-pv") || "";
-  if (url.charAt(0) === "/" && window.tgFull) url = window.tgFull(url);
+  if (url.charAt(0) === "/") url = API + url;
   var kind = el.getAttribute("data-kind") || "video";
   var note = "";
   try { note = decodeURIComponent(el.getAttribute("data-note") || ""); } catch(e){}
