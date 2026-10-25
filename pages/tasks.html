@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vazifalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=39">
+<link rel="stylesheet" href="../style.css?v=40">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=39"></script>
-<script src="../assets/notif.js?v=39"></script>
+<script src="../assets/tg.js?v=40"></script>
+<script src="../assets/notif.js?v=40"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -47,6 +47,9 @@
   .form .send{width:100%;background:var(--ok);color:#08110c;border:0;border-radius:12px;padding:12px;font-size:15px;font-weight:700}
   #sheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
   #sheet.on{display:flex}
+  #pv{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:60}
+  #pv.on{display:flex}
+  #pv .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
   #asheet{position:fixed;inset:0;background:#000d;display:none;align-items:flex-end;z-index:50}
   #asheet.on{display:flex}
   #asheet .in{background:var(--panel);width:100%;padding:14px;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto}
@@ -55,7 +58,7 @@
   .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=39">
+<link rel="stylesheet" href="../assets/ui.css?v=40">
 </head>
 <body data-sec="tasks">
 <div class="wrap">
@@ -96,6 +99,16 @@
       <button class="ghost" id="aClose">Yopish</button>
     </div>
     <div class="st" id="aSt"></div>
+  </div>
+</div>
+
+<div id="pv">
+  <div class="in">
+    <h2 style="font-size:16px;margin:0 0 10px">📎 Isbot</h2>
+    <video id="pvV" controls playsinline style="width:100%;border-radius:12px;background:#000;display:none"></video>
+    <img id="pvI" alt="" style="width:100%;border-radius:12px;display:none">
+    <div id="pvNote" style="font-size:13px;color:var(--dim);margin-top:10px"></div>
+    <div class="row"><button class="ghost" id="pvClose">Yopish</button></div>
   </div>
 </div>
 
@@ -173,6 +186,14 @@ function deadlineTag(t){
   return '<span class="tag '+(late?"late":"")+'">📅 '+t.deadline+(late?" · kechikkan":"")+'</span>';
 }
 
+function when(iso){
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d)) return '';
+  var p = function(n){ return String(n).padStart(2,'0'); };
+  return p(d.getDate())+'.'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
 function render(items){
   if (!items.length){ $("list").innerHTML = '<div class="empty">'+(status==="active"?"Faol vazifa yo‘q ✅":"Hali bajarilgan yo‘q")+'</div>'; return; }
   $("list").innerHTML = items.map(function(t){
@@ -181,9 +202,14 @@ function render(items){
       (t.note ? '<div class="n">'+esc(t.note)+'</div>' : '') +
       '<div class="m">' + deadlineTag(t) +
         (t.status==="done" ? '<span class="tag ok">✅ bajarildi</span>' : '') +
+        (t.status==="done" && t.done_at ? '<span class="tag">🕒 '+when(t.done_at)+'</span>' : '') +
         (isManager ? '<span class="tag">👤 '+esc(t.assignee_name||t.assignee)+'</span>' : '') +
         (t.repeat && t.repeat!=="once" ? '<span class="tag">🔁 '+(t.repeat==="daily"?"har kuni":"har hafta")+'</span>' : '') +
       '</div>' +
+      (t.status==="done" && t.proof_url ? '<div class="row">' +
+        '<button class="ghost" data-pv="'+t.proof_url+'" data-kind="'+(t.proof_kind||'video')+'" ' +
+        'data-note="'+encodeURIComponent(t.proof_note||'')+'" onclick="openProofView(this)">📎 Isbotni ko\'rish</button>' +
+      '</div>' : '') +
       (t.status!=="done" ? '<div class="row">' +
         '<button class="done" onclick="openProof('+t.id+',\''+esc(t.title).replace(/'/g,"")+'\')">✅ Isbot bilan yopish</button>' +
         (isManager ? '<button class="ghost" onclick="openAssign('+t.id+')">👤 Biriktirish</button>' : '') +
@@ -283,6 +309,31 @@ $("bSend").onclick = function(){
     })
     .catch(function(e){ $("bSend").disabled=false; say("sSt","Tarmoq xatosi: "+e.message,"err"); });
 };
+
+/* ---- isbotni ko'rish ---- */
+function openProofView(el){
+  var url = el.getAttribute("data-pv") || "";
+  var kind = el.getAttribute("data-kind") || "video";
+  var note = "";
+  try { note = decodeURIComponent(el.getAttribute("data-note") || ""); } catch(e){}
+  var v=$("pvV"), i=$("pvI");
+  $("pvNote").textContent = note || "";
+  if (kind === "photo"){ v.style.display="none"; v.removeAttribute("src"); i.style.display="block"; i.src=url; }
+  else {
+    i.style.display="none"; i.removeAttribute("src");
+    v.style.display="block"; v.src=url;
+    try { v.play().catch(function(){}); } catch(e){}
+  }
+  $("pv").classList.add("on");
+}
+function closeProofView(){
+  var v=$("pvV");
+  try { v.pause(); } catch(e){}
+  v.removeAttribute("src"); v.style.display="none"; $("pvI").style.display="none";
+  $("pv").classList.remove("on");
+}
+$("pvClose").onclick = closeProofView;
+$("pv").addEventListener("click", function(e){ if (e.target === this) closeProofView(); });
 
 /* ---- qayta biriktirish ---- */
 var AID = 0;
