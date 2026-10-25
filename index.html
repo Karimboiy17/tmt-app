@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2b0625">
 <title>IELTS ZONE — TMT</title>
-<link rel="stylesheet" href="style.css?v=46">
+<link rel="stylesheet" href="style.css?v=47">
 <script src="assets/telegram-web-app.js"></script>
-<script src="assets/tg.js?v=46"></script>
+<script src="assets/tg.js?v=47"></script>
 </head>
 <body class="home">
 <div class="wallpaper"></div>
@@ -33,7 +33,7 @@
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M5 21V4h9v17"/><path d="M14 9h5v12"/><path d="M11.2 12.5h.01"/></svg></span>
     <span class="txt"><b>Xonalar</b><i>kunlik nazorat</i></span>
   </a>
-  <a class="card" data-ac="violet" href="pages/photos.html">
+  <a class="card" data-ac="violet" data-perm="photos" href="pages/photos.html">
     <span class="chip"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="8.6" cy="10" r="1.6"/><path d="M4 17l4.6-4.2 3.2 2.8 2.6-2.3L20 17"/></svg></span>
     <span class="txt"><b>Rasmlar</b><i>arxiv · filial · sana</i></span><span class="ch">›</span>
   </a>
@@ -53,11 +53,11 @@
     <span class="chip"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M8 4v13"/></svg></span>
     <span class="txt"><b>Kitoblar</b><i>qoldiq · 7 daraja</i></span>
   </a>
-  <a class="card" data-ac="slate" href="pages/admin.html">
+  <a class="card" data-ac="slate" data-perm="admin" href="pages/admin.html">
     <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
     <span class="txt"><b>Admin</b><i>xodim · filial</i></span>
   </a>
-  <a class="card wide" data-ac="indigo" href="pages/coordinators.html">
+  <a class="card wide" data-ac="indigo" data-perm="coordinators" href="pages/coordinators.html">
     <span class="chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/></svg></span>
     <span class="txt"><b>Koordinator</b><i>filial mas’uli</i></span><span class="ch">›</span>
   </a>
@@ -78,15 +78,30 @@
     var m = raw.match(/^([a-z]+)[_-]?(\d*)$/);
     if (m) { sec = m[1]; id = m[2] || (q.get("id") || ""); }
     if (!OK[sec]) { sec = ""; id = ""; }
+    // rol bo'yicha yopilgan bo'limga kirishga urinish -> bosh sahifada qolamiz
+    try {
+      var mm = JSON.parse(sessionStorage.getItem("tg_me") || "null");
+      if (mm && mm.perms && mm.perms[sec] === false) { sec = ""; id = ""; }
+    } catch(e2){}
   } catch(e){}
   if (sec) location.replace("pages/" + sec + ".html" + (id ? "?id=" + encodeURIComponent(id) : ""));
 })();
 </script>
 <script>
 (function(){
+  // Rol bo'yicha kartalarni yashirish (perms backenddan: /api/webapp/me)
+  function applyPerms(p){
+    if (!p) return;
+    var cs = document.querySelectorAll(".card[data-perm]");
+    for (var i = 0; i < cs.length; i++){
+      var k = cs[i].getAttribute("data-perm");
+      cs[i].style.display = (p[k] === false) ? "none" : "";
+    }
+  }
   try{
     const me = JSON.parse(sessionStorage.getItem("tg_me") || "null");
     if(me && me.name) document.getElementById("who").textContent = me.name;
+    if(me) applyPerms(me.perms);
   }catch(e){}
 
   const DAYS = ["Yak","Dush","Sesh","Chor","Pay","Jum","Shan"];
@@ -106,7 +121,9 @@
     window.tgJson("/api/webapp/me").then(function(j){
       if (!j || !j.ok || !j.counts) return;
       try {
-        sessionStorage.setItem("tg_me", JSON.stringify({id:j.id, name:j.name, branch:j.branch, manager:j.manager}));
+        sessionStorage.setItem("tg_me", JSON.stringify({id:j.id, name:j.name, branch:j.branch,
+          manager:j.manager, role:j.role, perms:j.perms || null}));
+        applyPerms(j.perms);
         if (j.name) document.getElementById("who").textContent = j.name;
       } catch(e){}
       Object.keys(j.counts).forEach(function(sec){
@@ -133,7 +150,7 @@
 </script>
 <script>
 (function(){try{
- var VER=38, k='tmt_ver';
+ var VER=47, k='tmt_ver';
  fetch('version.json?_='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
   if(!j||!j.ver) return;
   var have=+(sessionStorage.getItem(k)||0);
