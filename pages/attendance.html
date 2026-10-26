@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Davomat — TMT</title>
-<link rel="stylesheet" href="../style.css?v=48">
+<link rel="stylesheet" href="../style.css?v=49">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=48"></script>
+<script src="../assets/tg.js?v=49"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -24,8 +24,14 @@
   .note textarea{width:100%;min-height:64px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--tx);padding:10px;font-family:inherit;font-size:14px}
   .st{margin-top:12px;font-size:14px;color:var(--dim);min-height:20px}
   .st.ok{color:var(--ok)} .st.err{color:#e5484d}
+  .came{margin:0 0 14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  .came-h{font-size:14px;font-weight:600;margin-bottom:6px}
+  .came-r{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-top:1px solid var(--line)}
+  .came-r:first-child{border-top:0}
+  .came-n{color:var(--tx)} .came-m{color:var(--dim);white-space:nowrap}
+  .came-e{font-size:13px;color:var(--dim)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=48">
+<link rel="stylesheet" href="../assets/ui.css?v=49">
 </head>
 <body>
 <div class="wrap">
@@ -33,6 +39,11 @@
   <h1>Davomat</h1>
   <p class="sub" id="sub">Kamera ochilishi kerak</p>
   <p class="sub" id="today"></p>
+
+  <div class="came" id="came" hidden>
+    <div class="came-h" id="cameH">Bugun kelganlar</div>
+    <div id="cameL"></div>
+  </div>
 
   <video id="cam" autoplay playsinline muted></video>
 
@@ -69,12 +80,32 @@ function checkCtx(){
   return false;
 }
 tgWaitInit(checkCtx);
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
 function loadToday(){
   tgFetch(ATT).then(function(r){ return r.json(); }).then(function(j){
     if (!j || !j.ok) return;
     var txt = j.state === "offline" ? "Bugun hali kirilmagan"
             : (j.t_in || "—") + " kirdi" + (j.t_out ? " · " + j.t_out + " ketdi" : " · hali ishda");
     document.getElementById("today").textContent = "Bugun: " + txt;
+
+    var box = document.getElementById("came");
+    var L = j.list || [];
+    if (!j.can_see_all) { box.hidden = true; return; }
+    document.getElementById("cameH").textContent =
+      "Bugun kelganlar · " + L.length + " kishi";
+    document.getElementById("cameL").innerHTML = L.length
+      ? L.map(function(x){
+          var right = x.t_in + (x.t_out ? " → " + x.t_out : "");
+          return '<div class="came-r"><span class="came-n">' + esc(x.name) +
+                 (x.branch ? ' · ' + esc(x.branch) : "") +
+                 '</span><span class="came-m">' + esc(right) + '</span></div>';
+        }).join("")
+      : '<div class="came-e">Bugun hali hech kim video bilan kirmagan</div>';
+    box.hidden = false;
   }).catch(function(){});
 }
 loadToday();
