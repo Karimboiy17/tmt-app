@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=50">
+<link rel="stylesheet" href="../style.css?v=51">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=50"></script>
-<script src="../assets/notif.js?v=50"></script>
+<script src="../assets/tg.js?v=51"></script>
+<script src="../assets/notif.js?v=51"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -45,7 +45,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=50">
+<link rel="stylesheet" href="../assets/ui.css?v=51">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -61,6 +61,8 @@
     <div class="cnt" id="sCnt">—</div>
     <div class="st" id="sSt"></div>
     <video id="cam" autoplay playsinline muted></video>
+    <input type="file" id="fCam" accept="image/*" capture="environment" style="display:none">
+    <button class="ghost" id="bFile" style="display:none;width:100%;margin-bottom:8px">📷 Kameradan rasm (zaxira yo‘l)</button>
     <div class="row">
       <button class="snap" id="bSnap">📸 Rasm olish</button>
       <button class="ghost" id="bClose">Yopish</button>
@@ -133,6 +135,52 @@ function load(){
   }).catch(function(e){ $("list").innerHTML = '<div class="empty">Tarmoq xatosi: '+esc(e.message)+'</div>'; });
 }
 
+function camLive(){
+  if (!stream) return false;
+  var ts = stream.getTracks ? stream.getTracks() : [];
+  for (var i = 0; i < ts.length; i++) if (ts[i].readyState === "live") return true;
+  return false;
+}
+
+function camStop(){
+  if (stream){
+    try { stream.getTracks().forEach(function(t){ t.onended = null; t.stop(); }); } catch(e){}
+  }
+  stream = null;
+  var v = $("cam"); if (v) v.srcObject = null;
+}
+
+function camStart(cb){
+  camStop();
+  var tries = [
+    { video:{ facingMode:{ideal:"environment"}, width:{ideal:1440}, height:{ideal:1920} }, audio:false },
+    { video:{ facingMode:"environment" }, audio:false },
+    { video:true, audio:false }
+  ];
+  var i = 0;
+  function next(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ cb("Qurilmada kamera topilmadi"); return; }
+    navigator.mediaDevices.getUserMedia(tries[i]).then(function(s){
+      if (!curOpen || !$("sheet").classList.contains("on")){
+        s.getTracks().forEach(function(t){ t.stop(); }); cb("yopiq"); return;
+      }
+      stream = s;
+      s.getTracks().forEach(function(t){ t.onended = function(){ if (stream === s) stream = null; }; });
+      var v = $("cam");
+      v.srcObject = s;
+      if (v.play){ var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); }
+      cb(null, s);
+    }).catch(function(e){
+      if (i < tries.length - 1){ i++; setTimeout(next, 120); return; }
+      var m = (e && e.name === "NotAllowedError")
+        ? "Kamera ruxsati yo'q — Telegram sozlamalaridan kameraga ruxsat bering"
+        : "Kamera ochilmadi: " + ((e && (e.message || e.name)) || "xato");
+      cb(m);
+    });
+  }
+  next();
+}
+
 function openRoom(id){
   var r = RM[id]; if (!r) return;
   if (!initLen()) tgWaitInit(function(d){ if (!d) alert("Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching"); });
@@ -155,18 +203,27 @@ function openRoom(id){
     return;
   }
   if (w && w.enabled && w.open && w.left != null) say("⏰ Yopilishiga " + w.left + " daqiqa qoldi");
-  if (!stream){
-    navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment", width:{ideal:1440}, height:{ideal:1920}}, audio:false })
-      .then(function(s){ if (!curOpen){ s.getTracks().forEach(function(t){t.stop();}); return; }
-                        stream=s; $("cam").srcObject=s; })
-      .catch(function(e){ say("Kamera ochilmadi: "+e.message,"err"); });
+  $("bFile").style.display = "none";
+  if (camLive()){
+    $("cam").srcObject = stream;
+    if ($("cam").play){ var pc = $("cam").play(); if (pc && pc.catch) pc.catch(function(){}); }
+  } else {
+    camStart(function(err){
+      if (err && err !== "yopiq"){ say(err, "err"); $("bFile").style.display = "block"; }
+    });
   }
 }
 
+document.addEventListener("visibilitychange", function(){
+  if (document.hidden || !$("sheet").classList.contains("on") || !curOpen) return;
+  if (!camLive()) camStart(function(){});
+});
+
 function closeSheet(){
   $("sheet").classList.remove("on");
-  if (stream){ stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
-  $("cam").srcObject = null;
+  busy = false; $("bSnap").disabled = false;
+  $("bFile").style.display = "none";
+  camStop();
 }
 $("bClose").onclick = closeSheet;
 
@@ -183,7 +240,19 @@ function bright(v){
 
 function grab(tries){
   var v = $("cam");
-  if (!v || !stream || !cur || !curOpen) return;
+  if (!v || !cur || !curOpen) return;
+  if (!camLive()){
+    if (tries > 0){
+      camStart(function(err){
+        if (err && err !== "yopiq"){ busy = false; $("bSnap").disabled = false; say(err, "err"); $("bFile").style.display = "block"; return; }
+        setTimeout(function(){ grab(tries - 1); }, 300);
+      });
+    } else {
+      busy = false; $("bSnap").disabled = false;
+      say("Kamera uzildi — xonani qayta oching", "err");
+    }
+    return;
+  }
   var ready = v.videoWidth > 0 && v.readyState >= 2;
   if (!ready && tries > 0){
     if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(function(){ setTimeout(function(){ grab(tries - 1); }, 100); });
@@ -195,7 +264,8 @@ function grab(tries){
   if (b.max < 10){                       // kadr hali qora — kamera tayyor emas
     if (tries > 0){ setTimeout(function(){ grab(tries - 1); }, 450); return; }
     busy = false; $("bSnap").disabled = false;
-    say("Kamera tayyor emas — qayta bosing", "err");
+    camStop();
+    say("Kamera kadr bermayapti — xonani yopib qayta oching", "err");
     return;
   }
   var c = document.createElement("canvas");
@@ -203,6 +273,12 @@ function grab(tries){
   c.getContext("2d").drawImage(v, 0, 0, w, h);
   c.toBlob(function(blob){
     if (!blob){ busy = false; $("bSnap").disabled = false; say("Rasm olinmadi","err"); return; }
+    sendPhoto(blob);
+  }, "image/jpeg", 0.9);
+}
+
+function sendPhoto(blob){
+    busy = true; $("bSnap").disabled = true;
     say("Yuborilmoqda…");
     var fd = new FormData();
     fd.append("file", blob, "xona.jpg");
@@ -229,16 +305,26 @@ function grab(tries){
         } else say("Xato: " + ((res.j && res.j.error) || res.code), "err");
       })
       .catch(function(e){ busy=false; $("bSnap").disabled=false; say("Tarmoq xatosi: "+e.message, "err"); });
-  }, "image/jpeg", 0.9);
 }
 
 function snap(){
-  if (!stream || busy || !cur || !curOpen) return;
+  if (busy || !cur || !curOpen) return;
   busy = true; $("bSnap").disabled = true;
   say("Rasm olinmoqda…");
   grab(3);
 }
 $("bSnap").onclick = snap;
+
+$("fCam").onchange = function(){
+  var f = this.files && this.files[0];
+  this.value = "";
+  if (!f || !cur || !curOpen || busy) return;
+  sendPhoto(f);
+};
+$("bFile").onclick = function(){
+  if (!cur || !curOpen){ say("Xona tanlanmagan", "err"); return; }
+  $("fCam").click();
+};
 
 function doReset(){
   if (!cur) return;

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vazifalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=50">
+<link rel="stylesheet" href="../style.css?v=51">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=50"></script>
-<script src="../assets/notif.js?v=50"></script>
+<script src="../assets/tg.js?v=51"></script>
+<script src="../assets/notif.js?v=51"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -59,7 +59,7 @@
   .st{font-size:13px;color:var(--dim);min-height:18px;margin-top:8px}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=50">
+<link rel="stylesheet" href="../assets/ui.css?v=51">
 </head>
 <body data-sec="tasks">
 <div class="wrap">
@@ -117,12 +117,17 @@
   <div class="in">
     <h2 style="font-size:16px;margin:0 0 10px" id="sTitle">Isbot</h2>
     <video id="cam" autoplay playsinline muted></video>
+    <input type="file" id="fVid" accept="video/*" capture="environment" style="display:none">
     <textarea id="sNote" placeholder="Izoh" style="width:100%;min-height:56px;margin-top:10px;background:#12171c;border:1px solid var(--line);border-radius:10px;color:var(--tx);padding:10px;font-family:inherit"></textarea>
     <div class="row">
       <button class="ghost" id="bRec">⏺ Yozish</button>
       <button class="ghost" id="bStop" hidden>⏹ To‘xtatish</button>
       <button class="done" id="bSend">Yuborish</button>
       <button class="ghost" id="bClose">Yopish</button>
+    </div>
+    <div class="row">
+      <button class="ghost" id="bRetry" hidden>🔄 Kamerani qayta urinish</button>
+      <button class="ghost" id="bPick" hidden>🎥 Tizim kamerasi</button>
     </div>
     <div class="st" id="sSt"></div>
   </div>
@@ -260,13 +265,66 @@ function openProof(id, title){
   cur = id; $("sTitle").textContent = "Isbot — " + title;
   $("sNote").value = ""; blob = null; say("sSt","");
   $("sheet").classList.add("on");
-  navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"}, audio:false })
-    .then(function(s){ stream=s; $("cam").srcObject=s; $("bRec").hidden=false; say("sSt","Video yozing yoki to‘g‘ridan yuboring"); })
-    .catch(function(e){ say("sSt","Kamera ochilmadi: "+e.message+". Izoh bilan yuborishingiz mumkin","err"); });
+  openCam();
 }
 
+function camLive(){
+  if (!stream) return false;
+  var ts = stream.getTracks ? stream.getTracks() : [];
+  for (var i=0;i<ts.length;i++) if (ts[i].readyState === "live") return true;
+  return false;
+}
+function camStop(){
+  try { if (stream) stream.getTracks().forEach(function(t){ t.onended=null; t.stop(); }); } catch(e){}
+  stream = null; if ($("cam")) $("cam").srcObject = null;
+}
+function camErr(e){
+  var n = (e && e.name) || "";
+  if (n === "NotAllowedError" || n === "SecurityError")
+    return "Kamera ruxsati berilmagan. Telegram → Sozlamalar → Kamera ruxsatini yoqing, keyin «Kamerani qayta urinish»ni bosing.";
+  if (n === "NotReadableError" || n === "TrackStartError")
+    return "Kamera band — boshqa ilova kamerani ishlatyapti. Uni yopib «Kamerani qayta urinish»ni bosing.";
+  if (n === "NotFoundError" || n === "OverconstrainedError")
+    return "Kamera topilmadi — «Tizim kamerasi» tugmasidan foydalaning.";
+  return "Kamera ochilmadi (" + (n || "xato") + "). «Kamerani qayta urinish»ni bosing.";
+}
+function openCam(cb){
+  camStop();
+  $("cam").src = ""; $("cam").controls = false;
+  $("bRetry").hidden = true; $("bPick").hidden = true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    say("sSt","Brauzerda kamera API yo‘q — «Tizim kamerasi»dan foydalaning","err");
+    $("bPick").hidden = false; if (cb) cb(false); return;
+  }
+  navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"}, audio:false })
+    .then(function(s){
+      stream = s; $("cam").srcObject = s;
+      s.getTracks().forEach(function(t){ t.onended = function(){ if (stream === s) stream = null; }; });
+      try { var p = $("cam").play(); if (p && p.catch) p.catch(function(){}); } catch(e){}
+      $("bRec").hidden = false;
+      say("sSt","Video yozing yoki to‘g‘ridan yuboring");
+      if (cb) cb(true);
+    })
+    .catch(function(e){
+      say("sSt", camErr(e), "err");
+      $("bRetry").hidden = false; $("bPick").hidden = false;
+      if (cb) cb(false);
+    });
+}
+$("bRetry").onclick = function(){ say("sSt","Kamera qayta ochilmoqda…"); openCam(); };
+$("bPick").onclick = function(){ $("fVid").click(); };
+$("fVid").onchange = function(){
+  var fl = this.files && this.files[0]; this.value = "";
+  if (!fl) { say("sSt","Video tanlanmadi","err"); return; }
+  camStop(); blob = fl; recSecs = 0;
+  $("cam").src = URL.createObjectURL(fl); $("cam").controls = true;
+  $("bRec").hidden = true; $("bStop").hidden = true;
+  say("sSt","Video tayyor — «Yuborish»ni bosing","ok");
+};
+
 function closeProof(){
-  if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; }
+  camStop();
+  $("bRetry").hidden = true; $("bPick").hidden = true;
   $("cam").srcObject=null; $("sheet").classList.remove("on");
   $("bRec").hidden=false; $("bStop").hidden=true;
 }
@@ -274,7 +332,11 @@ function closeProof(){
 $("bClose").onclick = closeProof;
 
 $("bRec").onclick = function(){
-  if (!stream){ say("sSt","Kamera yo‘q","err"); return; }
+  if (!camLive()){
+    say("sSt","Kamera uzildi — qayta ochilmoqda…");
+    openCam(function(ok){ if (ok) $("bRec").click(); });
+    return;
+  }
   chunks = [];
   var mime = "";
   if (window.MediaRecorder){

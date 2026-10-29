@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Davomat — TMT</title>
-<link rel="stylesheet" href="../style.css?v=50">
+<link rel="stylesheet" href="../style.css?v=51">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=50"></script>
+<script src="../assets/tg.js?v=51"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -31,7 +31,7 @@
   .came-n{color:var(--tx)} .came-m{color:var(--dim);white-space:nowrap}
   .came-e{font-size:13px;color:var(--dim)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=50">
+<link rel="stylesheet" href="../assets/ui.css?v=51">
 </head>
 <body>
 <div class="wrap">
@@ -46,6 +46,7 @@
   </div>
 
   <video id="cam" autoplay playsinline muted></video>
+  <input type="file" id="fVid" accept="video/*" capture="environment" style="display:none">
 
   <div class="note">
     <textarea id="note" placeholder="Izoh (majburiy emas)"></textarea>
@@ -56,6 +57,8 @@
     <button class="stop" id="bStop" hidden>⏹ To‘xtatish</button>
     <button class="send" id="bIn" hidden>💼 Ishga keldim — yuborish</button>
     <button class="send" id="bOut" hidden>🚪 Ishdan ketdim — yuborish</button>
+    <button class="ghost" id="bRetry" hidden>🔄 Kamerani qayta urinish</button>
+    <button class="ghost" id="bFile" hidden>🎥 Tizim kamerasi bilan yozish</button>
   </div>
 
   <div class="st" id="st"></div>
@@ -110,17 +113,76 @@ function loadToday(){
 }
 loadToday();
 
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
-  .then(function (s) {
-    stream = s; cam.srcObject = s;
-    document.getElementById("bRec").disabled = false;
-    document.getElementById("sub").textContent = "Videoni yozing (10–20 soniya)";
-  })
-  .catch(function (e) {
-    say("Kamera ochilmadi: " + e.message, "err");
-  });
+function camLive(){
+  if (!stream) return false;
+  var ts = stream.getTracks ? stream.getTracks() : [];
+  for (var i = 0; i < ts.length; i++) if (ts[i].readyState === "live") return true;
+  return false;
+}
+function camStop(){
+  try { if (stream) stream.getTracks().forEach(function(t){ t.onended = null; t.stop(); }); } catch (e) {}
+  stream = null; cam.srcObject = null;
+}
+function showFile(on){
+  document.getElementById("bFile").hidden = !on;
+  document.getElementById("bRetry").hidden = !on;
+}
+function camErr(e){
+  var n = (e && e.name) || "";
+  if (n === "NotAllowedError" || n === "SecurityError")
+    return "Kamera ruxsati berilmagan. Telegram → Sozlamalar → Kamera ruxsatini yoqing, keyin «Kamerani qayta urinish»ni bosing.";
+  if (n === "NotReadableError" || n === "TrackStartError")
+    return "Kamera band — boshqa ilova kamerani ishlatyapti. Uni yopib «Kamerani qayta urinish»ni bosing.";
+  if (n === "NotFoundError" || n === "OverconstrainedError")
+    return "Kamera topilmadi — «Tizim kamerasi bilan yozish» tugmasidan foydalaning.";
+  return "Kamera ochilmadi (" + (n || "xato") + "). «Kamerani qayta urinish»ni bosing.";
+}
+function openCam(cb){
+  camStop();
+  var v = cam; v.src = ""; v.controls = false;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    say("Brauzerda kamera API yo‘q — «Tizim kamerasi bilan yozish»dan foydalaning", "err");
+    showFile(true); if (cb) cb(false); return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+    .then(function (s) {
+      stream = s; cam.srcObject = s;
+      s.getTracks().forEach(function (t) { t.onended = function () { if (stream === s) stream = null; }; });
+      try { var p = cam.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+      document.getElementById("bRec").disabled = false;
+      document.getElementById("sub").textContent = "Videoni yozing (10–20 soniya)";
+      showFile(false);
+      if (cb) cb(true);
+    })
+    .catch(function (e) {
+      document.getElementById("bRec").disabled = true;
+      say(camErr(e), "err");
+      showFile(true);
+      if (cb) cb(false);
+    });
+}
+openCam();
+document.getElementById("bRetry").onclick = function () { say("Kamera qayta ochilmoqda…"); openCam(); };
+document.getElementById("bFile").onclick = function () { document.getElementById("fVid").click(); };
+document.getElementById("fVid").onchange = function () {
+  var f = this.files && this.files[0]; this.value = "";
+  if (!f) { say("Video tanlanmadi", "err"); return; }
+  camStop();
+  blob = f; recSecs = 0;
+  cam.src = URL.createObjectURL(f); cam.controls = true;
+  document.getElementById("bRec").hidden = true;
+  document.getElementById("bIn").hidden = false;
+  document.getElementById("bOut").hidden = false;
+  document.getElementById("sub").textContent = "Video tanlandi — tugmani bosing";
+  say("Video tayyor — «Ishga keldim» yoki «Ishdan ketdim»ni bosing", "ok");
+};
 
 document.getElementById("bRec").onclick = function () {
+  if (!camLive()) {
+    say("Kamera uzildi — qayta ochilmoqda…");
+    openCam(function (ok) { if (ok) document.getElementById("bRec").click(); });
+    return;
+  }
   chunks = [];
   var mime = "";
   if (window.MediaRecorder) {
