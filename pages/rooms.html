@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=54">
+<link rel="stylesheet" href="../style.css?v=55">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=54"></script>
-<script src="../assets/notif.js?v=54"></script>
+<script src="../assets/tg.js?v=55"></script>
+<script src="../assets/notif.js?v=55"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -48,7 +48,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=54">
+<link rel="stylesheet" href="../assets/ui.css?v=55">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -183,11 +183,11 @@ function camStart(cb, dev){
         s.getTracks().forEach(function(t){ t.stop(); }); cb("yopiq"); return;
       }
       stream = s;
+      if (dev) lensDev = dev;
       s.getTracks().forEach(function(t){ t.onended = function(){ if (stream === s) stream = null; }; });
       var v = $("cam");
-      v.srcObject = s;
-      if (v.play){ var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); }
-      if (dev) lensDev = dev;
+      try { v.srcObject = s; } catch(e0){}
+      try { if (v.play){ var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } } catch(e1){}
       setTimeout(lensUI, 300);
       cb(null, s);
     }).catch(function(e){
@@ -229,9 +229,10 @@ function lensUI(){
     var vids = ds.filter(function(d){ return d.kind === "videoinput" && d.deviceId; });
     var back = vids.filter(function(d){ return !/(front|facetime|user|old)/i.test(d.label || ""); });
     lensCams = (back.length ? back : vids);
-    var opts = [];
-    if (zoomMin != null) opts.push({ k: "z0", t: "0,5×" });
+    var opts = [], hasUW = false;
+    for (var j = 0; j < lensCams.length; j++) if (/ultra|0[.,]5|super ?wide|超广角/i.test(lensCams[j].label || "")) hasUW = true;
     if (lensCams.length > 1) lensCams.forEach(function(d, i){ opts.push({ k: "d" + i, t: lensName(d, i) }); });
+    if (zoomMin != null && !hasUW) opts.unshift({ k: "z0", t: "0,5× (zoom)" });
     if (!opts.length){ box.style.display = "none"; box.innerHTML = ""; return; }
     box.style.display = "flex";
     box.innerHTML = opts.map(function(o){
