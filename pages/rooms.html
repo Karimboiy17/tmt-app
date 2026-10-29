@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=49">
+<link rel="stylesheet" href="../style.css?v=50">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=49"></script>
-<script src="../assets/notif.js?v=49"></script>
+<script src="../assets/tg.js?v=50"></script>
+<script src="../assets/notif.js?v=50"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -45,7 +45,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=49">
+<link rel="stylesheet" href="../assets/ui.css?v=50">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -156,7 +156,7 @@ function openRoom(id){
   }
   if (w && w.enabled && w.open && w.left != null) say("⏰ Yopilishiga " + w.left + " daqiqa qoldi");
   if (!stream){
-    navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment"}, audio:false })
+    navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment", width:{ideal:1440}, height:{ideal:1920}}, audio:false })
       .then(function(s){ if (!curOpen){ s.getTracks().forEach(function(t){t.stop();}); return; }
                         stream=s; $("cam").srcObject=s; })
       .catch(function(e){ say("Kamera ochilmadi: "+e.message,"err"); });
@@ -170,16 +170,39 @@ function closeSheet(){
 }
 $("bClose").onclick = closeSheet;
 
-function snap(){
-  if (!stream || busy || !cur || !curOpen) return;
+function bright(v){
+  var s = document.createElement("canvas"); s.width = 64; s.height = 64;
+  var x = s.getContext("2d"); x.drawImage(v, 0, 0, 64, 64);
+  var d = x.getImageData(0, 0, 64, 64).data, mx = 0, sum = 0, n = d.length / 4;
+  for (var i = 0; i < d.length; i += 4){
+    var l = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    sum += l; if (l > mx) mx = l;
+  }
+  return { mean: sum / n, max: mx };
+}
+
+function grab(tries){
   var v = $("cam");
+  if (!v || !stream || !cur || !curOpen) return;
+  var ready = v.videoWidth > 0 && v.readyState >= 2;
+  if (!ready && tries > 0){
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(function(){ setTimeout(function(){ grab(tries - 1); }, 100); });
+    else setTimeout(function(){ grab(tries - 1); }, 350);
+    return;
+  }
   var w = v.videoWidth || 720, h = v.videoHeight || 960;
+  var b = v.videoWidth ? bright(v) : { mean: 0, max: 0 };
+  if (b.max < 10){                       // kadr hali qora — kamera tayyor emas
+    if (tries > 0){ setTimeout(function(){ grab(tries - 1); }, 450); return; }
+    busy = false; $("bSnap").disabled = false;
+    say("Kamera tayyor emas — qayta bosing", "err");
+    return;
+  }
   var c = document.createElement("canvas");
   c.width = w; c.height = h;
   c.getContext("2d").drawImage(v, 0, 0, w, h);
   c.toBlob(function(blob){
-    if (!blob){ say("Rasm olinmadi","err"); return; }
-    busy = true; $("bSnap").disabled = true;
+    if (!blob){ busy = false; $("bSnap").disabled = false; say("Rasm olinmadi","err"); return; }
     say("Yuborilmoqda…");
     var fd = new FormData();
     fd.append("file", blob, "xona.jpg");
@@ -205,8 +228,15 @@ function snap(){
           say("⏰ " + (res.j.error || "Tekshiruv vaqti yopiq"), "err");
         } else say("Xato: " + ((res.j && res.j.error) || res.code), "err");
       })
-      .catch(function(e){ busy=false; $("bSnap").disabled=false; say("Tarmoq xatosi: "+e.message,"err"); });
-  }, "image/jpeg", 0.82);
+      .catch(function(e){ busy=false; $("bSnap").disabled=false; say("Tarmoq xatosi: "+e.message, "err"); });
+  }, "image/jpeg", 0.9);
+}
+
+function snap(){
+  if (!stream || busy || !cur || !curOpen) return;
+  busy = true; $("bSnap").disabled = true;
+  say("Rasm olinmoqda…");
+  grab(3);
 }
 $("bSnap").onclick = snap;
 

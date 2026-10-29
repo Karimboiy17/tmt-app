@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xona rasmlari — TMT</title>
-<link rel="stylesheet" href="../style.css?v=49">
+<link rel="stylesheet" href="../style.css?v=50">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=49"></script>
-<link rel="stylesheet" href="../assets/ui.css?v=49">
+<script src="../assets/tg.js?v=50"></script>
+<link rel="stylesheet" href="../assets/ui.css?v=50">
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .dt{display:flex;align-items:center;gap:8px;margin:10px 0 6px}
@@ -24,6 +24,8 @@
     position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;border:1px solid var(--line,#2a3138);
     background:#0e1319;padding:0;display:block;width:100%;cursor:pointer}
   .thumbs .ph img,.thumbs .ph video{width:100%;height:100%;object-fit:cover;display:block}
+  .thumbs .ph.bad::after{content:"⛔ yuklanmadi";position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;font-size:10.5px;color:#7b8794;text-align:center;padding:4px}
   .thumbs .ph i{position:absolute;inset:auto 0 0 0;font-style:normal;font-size:10px;padding:3px 5px;
     background:linear-gradient(transparent,#000a);color:#e8ecf1;text-align:center}
   .empty{color:var(--dim);font-size:14px;text-align:center;padding:34px 10px;line-height:1.6}
@@ -121,10 +123,22 @@ function kpis(j){
     '<div class="kpi"><b>' + (j.photos || 0) + '</b><span>rasm · video</span></div>';
 }
 
+function phFail(img){
+  var n = +(img.getAttribute("data-n") || 0);
+  var u = img.getAttribute("data-src") || "";
+  if (n < 2){
+    img.setAttribute("data-n", n + 1);
+    setTimeout(function(){ img.src = u + (u.indexOf("?") >= 0 ? "&" : "?") + "r=" + (n + 1); }, 500 * (n + 1));
+    return;
+  }
+  img.style.display = "none";
+  if (img.parentNode) img.parentNode.classList.add("bad");
+}
+
 function roomCard(r){
   var thumbs = r.files.map(function(f, i){
     return '<button class="ph" data-u="' + esc(f.url) + '" data-i="' + i + '">' +
-           '<img loading="lazy" src="' + esc(media(f.url)) + '" alt="rasm ' + (i + 1) + '">' +
+           '<img loading="lazy" src="' + esc(media(f.url)) + '" alt="rasm ' + (i + 1) + '" data-src="' + esc(media(f.url)) + '" onerror="phFail(this)">' +
            '<i>' + (i + 1) + "</i></button>";
   }).join("");
   return '<div class="card2 rc">' +
