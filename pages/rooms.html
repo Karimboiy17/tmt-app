@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=51">
+<link rel="stylesheet" href="../style.css?v=52">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=51"></script>
-<script src="../assets/notif.js?v=51"></script>
+<script src="../assets/tg.js?v=52"></script>
+<script src="../assets/notif.js?v=52"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -45,7 +45,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=51">
+<link rel="stylesheet" href="../assets/ui.css?v=52">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -62,6 +62,7 @@
     <div class="st" id="sSt"></div>
     <video id="cam" autoplay playsinline muted></video>
     <input type="file" id="fCam" accept="image/*" capture="environment" style="display:none">
+    <button class="ghost" id="bRetry" style="display:none;width:100%;margin-bottom:8px">🔄 Kamerani qayta urinish</button>
     <button class="ghost" id="bFile" style="display:none;width:100%;margin-bottom:8px">📷 Kameradan rasm (zaxira yo‘l)</button>
     <div class="row">
       <button class="snap" id="bSnap">📸 Rasm olish</button>
@@ -135,6 +136,13 @@ function load(){
   }).catch(function(e){ $("list").innerHTML = '<div class="empty">Tarmoq xatosi: '+esc(e.message)+'</div>'; });
 }
 
+function camFallback(on){
+  var a = $("bRetry"), b = $("bFile");
+  if (a) a.style.display = on ? "block" : "none";
+  if (b) b.style.display = on ? "block" : "none";
+}
+$("bRetry").onclick = function(){ say("Kamera qayta ochilmoqda…"); camFallback(false); camStart(function(err){ if (err && err !== "yopiq") say(err, "err"); }); };
+
 function camLive(){
   if (!stream) return false;
   var ts = stream.getTracks ? stream.getTracks() : [];
@@ -172,9 +180,16 @@ function camStart(cb){
       cb(null, s);
     }).catch(function(e){
       if (i < tries.length - 1){ i++; setTimeout(next, 120); return; }
-      var m = (e && e.name === "NotAllowedError")
-        ? "Kamera ruxsati yo'q — Telegram sozlamalaridan kameraga ruxsat bering"
-        : "Kamera ochilmadi: " + ((e && (e.message || e.name)) || "xato");
+      var n = (e && e.name) || "";
+      var m;
+      if (n === "NotAllowedError" || n === "SecurityError")
+        m = "Kamera ruxsati yo'q — Telegram → Sozlamalar → Kamera ruxsatini yoqing, keyin «Kamerani qayta urinish»ni bosing";
+      else if (n === "NotReadableError" || n === "TrackStartError")
+        m = "Kamera band — boshqa ilova kamerani ishlatyapti. Uni yopib «Kamerani qayta urinish»ni bosing";
+      else if (n === "NotFoundError" || n === "OverconstrainedError")
+        m = "Kamera topilmadi — «Kameradan rasm (zaxira yo'l)»dan foydalaning";
+      else m = "Kamera ochilmadi (" + (n || "xato") + ") — «Kamerani qayta urinish»ni bosing";
+      camFallback(true);
       cb(m);
     });
   }
@@ -203,13 +218,13 @@ function openRoom(id){
     return;
   }
   if (w && w.enabled && w.open && w.left != null) say("⏰ Yopilishiga " + w.left + " daqiqa qoldi");
-  $("bFile").style.display = "none";
+  camFallback(false);
   if (camLive()){
     $("cam").srcObject = stream;
     if ($("cam").play){ var pc = $("cam").play(); if (pc && pc.catch) pc.catch(function(){}); }
   } else {
     camStart(function(err){
-      if (err && err !== "yopiq"){ say(err, "err"); $("bFile").style.display = "block"; }
+      if (err && err !== "yopiq") say(err, "err");
     });
   }
 }
@@ -222,7 +237,7 @@ document.addEventListener("visibilitychange", function(){
 function closeSheet(){
   $("sheet").classList.remove("on");
   busy = false; $("bSnap").disabled = false;
-  $("bFile").style.display = "none";
+  camFallback(false);
   camStop();
 }
 $("bClose").onclick = closeSheet;
@@ -244,7 +259,7 @@ function grab(tries){
   if (!camLive()){
     if (tries > 0){
       camStart(function(err){
-        if (err && err !== "yopiq"){ busy = false; $("bSnap").disabled = false; say(err, "err"); $("bFile").style.display = "block"; return; }
+        if (err && err !== "yopiq"){ busy = false; $("bSnap").disabled = false; say(err, "err"); camFallback(true); return; }
         setTimeout(function(){ grab(tries - 1); }, 300);
       });
     } else {
