@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=56">
+<link rel="stylesheet" href="../style.css?v=53">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=56"></script>
-<script src="../assets/notif.js?v=56"></script>
+<script src="../assets/tg.js?v=53"></script>
+<script src="../assets/notif.js?v=53"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -35,9 +35,6 @@
   .row button{flex:1;border:0;border-radius:12px;padding:12px;font-size:14px;font-weight:600;font-family:inherit}
   .snap{background:var(--ok);color:#08110c}
   .ghost{background:#1b2229;color:var(--tx);border:1px solid var(--line)}
-  #lens{display:none;gap:8px;margin:0 0 8px}
-  #lens .lensb{flex:1;padding:10px 4px;border-radius:10px;background:#1b2229;color:var(--tx);border:1px solid var(--line);font-size:14px;font-weight:600}
-  #lens .lensb.on{background:#2b0625;border-color:#8a4fff;color:#fff}
   .st{font-size:13px;color:var(--dim);min-height:0;margin:2px 0 8px}
   .st:empty{display:none}
   .st.err{color:#e5484d} .st.ok{color:var(--ok)}
@@ -48,7 +45,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=56">
+<link rel="stylesheet" href="../assets/ui.css?v=53">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -63,7 +60,6 @@
     <h2 id="sTitle">Xona</h2>
     <div class="cnt" id="sCnt">—</div>
     <div class="st" id="sSt"></div>
-    <div id="lens"></div>
     <video id="cam" autoplay playsinline muted></video>
     <input type="file" id="fCam" accept="image/*" capture="environment" style="display:none">
     <button class="ghost" id="bRetry" style="display:none;width:100%;margin-bottom:8px">🔄 Kamerani qayta urinish</button>
@@ -81,7 +77,6 @@ var API = "https://maintenance-production-d87e.up.railway.app";
 var ROOMS = API + "/api/tmt/rooms";
 var UP = API + "/api/tmt/upload";
 var need = 2, cur = null, canManage = false, curOpen = true, busy = false, stream = null;
-var lensDev = null, lensCams = [], zoomMin = null;
 var WINDOWS = {}, RM = {};
 
 function $(id){ return document.getElementById(id); }
@@ -163,14 +158,9 @@ function camStop(){
   var v = $("cam"); if (v) v.srcObject = null;
 }
 
-function camStart(cb, dev){
+function camStart(cb){
   camStop();
-  dev = dev || lensDev || null;
-  var tries = dev ? [
-    { video:{ deviceId:{exact:dev}, width:{ideal:1440}, height:{ideal:1920} }, audio:false },
-    { video:{ deviceId:{exact:dev} }, audio:false },
-    { video:{ facingMode:"environment" }, audio:false }
-  ] : [
+  var tries = [
     { video:{ facingMode:{ideal:"environment"}, width:{ideal:1440}, height:{ideal:1920} }, audio:false },
     { video:{ facingMode:"environment" }, audio:false },
     { video:true, audio:false }
@@ -183,12 +173,10 @@ function camStart(cb, dev){
         s.getTracks().forEach(function(t){ t.stop(); }); cb("yopiq"); return;
       }
       stream = s;
-      if (dev) lensDev = dev;
       s.getTracks().forEach(function(t){ t.onended = function(){ if (stream === s) stream = null; }; });
       var v = $("cam");
-      try { v.srcObject = s; } catch(e0){}
-      try { if (v.play){ var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } } catch(e1){}
-      setTimeout(lensUI, 300);
+      v.srcObject = s;
+      if (v.play){ var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); }
       cb(null, s);
     }).catch(function(e){
       if (i < tries.length - 1){ i++; setTimeout(next, 120); return; }
@@ -208,81 +196,6 @@ function camStart(cb, dev){
   next();
 }
 
-function lensName(d, i){
-  var l = (d.label || "").toLowerCase();
-  if (/ultra|0[.,]5|super ?wide|超广角/.test(l)) return "0,5×";
-  if (/tele|zoom|2×|2x/.test(l)) return "2×";
-  if (/wide/.test(l)) return "1×";
-  return "Kamera " + (i + 1);
-}
-
-function lensUI(){
-  var box = $("lens"); if (!box) return;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices){ box.style.display = "none"; return; }
-  zoomMin = null;
-  try {
-    var t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
-    var c = t && t.getCapabilities ? t.getCapabilities() : null;
-    if (c && c.zoom && typeof c.zoom.min === "number" && c.zoom.min < 1) zoomMin = c.zoom.min;
-  } catch(e){}
-  navigator.mediaDevices.enumerateDevices().then(function(ds){
-    var vids = ds.filter(function(d){ return d.kind === "videoinput" && d.deviceId; });
-    var back = vids.filter(function(d){ return !/(front|facetime|user|old)/i.test(d.label || ""); });
-    lensCams = (back.length ? back : vids);
-    var opts = [], hasUW = false;
-    for (var j = 0; j < lensCams.length; j++) if (/ultra|0[.,]5|super ?wide|超广角/i.test(lensCams[j].label || "")) hasUW = true;
-    if (lensCams.length > 1) lensCams.forEach(function(d, i){ opts.push({ k: "d" + i, t: lensName(d, i) }); });
-    if (zoomMin != null && !hasUW) opts.unshift({ k: "z0", t: "0,5× (zoom)" });
-    if (!opts.length){
-      box.style.display = "flex";
-      box.innerHTML = '<button class="lensb" data-k="sys">📷 0,5× rejim — tizim kamerasi</button>';
-      box.children[0].onclick = function(){
-        var f = $("fCam");
-        if (!f){ say("Tizim kamerasi mavjud emas", "err"); return; }
-        try { f.value = ""; } catch(e){}
-        f.click();
-      };
-      return;
-    }
-    box.style.display = "flex";
-    box.innerHTML = opts.map(function(o){
-      return '<button class="lensb" data-k="' + o.k + '">' + esc(o.t) + '</button>';
-    }).join("");
-    Array.prototype.forEach.call(box.children, function(el){
-      el.onclick = function(){ lensPick(el.getAttribute("data-k")); };
-    });
-    for (var i = 0; i < lensCams.length; i++){
-      if (lensDev && lensCams[i].deviceId === lensDev){
-        var b = box.querySelector('[data-k="d' + i + '"]'); if (b) b.classList.add("on");
-      }
-    }
-  }).catch(function(){});
-}
-
-function lensPick(k){
-  var box = $("lens");
-  if (k === "z0" && zoomMin != null){
-    var t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
-    if (!t || !t.applyConstraints){ say("Bu qurilmada 0,5× rejim yo‘q", "err"); return; }
-    var z = zoomMin;
-    try { var c = t.getCapabilities ? t.getCapabilities() : null; if (c && c.zoom && c.zoom.min != null) z = c.zoom.min; } catch(e){}
-    t.applyConstraints({ advanced: [{ zoom: z }] }).then(function(){
-      if (box) Array.prototype.forEach.call(box.children, function(el){ el.classList.remove("on"); });
-      var b = box && box.querySelector('[data-k="z0"]'); if (b) b.classList.add("on");
-      say("0,5× rejim yoqildi");
-    }).catch(function(){ say("0,5× rejim qo‘llanmadi", "err"); });
-    return;
-  }
-  var m = /^d(\d+)$/.exec(k || ""); if (!m) return;
-  var d = lensCams[parseInt(m[1], 10)]; if (!d) return;
-  if (d.deviceId === lensDev){ return; }
-  say("Ob‘ektiv almashtirilmoqda…");
-  camStart(function(err){
-    if (err && err !== "yopiq"){ say(err, "err"); return; }
-    say("");
-  }, d.deviceId);
-}
-
 function openRoom(id){
   var r = RM[id]; if (!r) return;
   if (!initLen()) tgWaitInit(function(d){ if (!d) alert("Telegram ma'lumoti yo'q — «Ilova» tugmasidan oching"); });
@@ -296,7 +209,6 @@ function openRoom(id){
     : (r.done ? "✅ allaqachon bajarilgan" : "Rasmlar: " + r.photos + "/" + need);
   $("bReset").style.display = (canManage && (r.done || r.photos || r.reopened || r.staffTotal)) ? "block" : "none";
   $("cam").style.display = curOpen ? "" : "none";
-  if (!curOpen) $("lens").style.display = "none";
   $("bSnap").style.display = curOpen ? "" : "none";
   $("bClose").style.flex = curOpen ? "" : "1";
   say("");
@@ -327,7 +239,6 @@ function closeSheet(){
   busy = false; $("bSnap").disabled = false;
   camFallback(false);
   camStop();
-  var lb = $("lens"); if (lb){ lb.style.display = "none"; lb.innerHTML = ""; }
 }
 $("bClose").onclick = closeSheet;
 
