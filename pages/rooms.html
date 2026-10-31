@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xonalar — TMT</title>
-<link rel="stylesheet" href="../style.css?v=58">
+<link rel="stylesheet" href="../style.css?v=59">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=58"></script>
-<script src="../assets/notif.js?v=58"></script>
+<script src="../assets/tg.js?v=59"></script>
+<script src="../assets/notif.js?v=59"></script>
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .back{color:var(--dim);text-decoration:none;font-size:14px}
@@ -43,6 +43,12 @@
     border-radius:14px;padding:8px;background:#12171c;overflow:auto;-webkit-overflow-scrolling:touch}
   .half.nocam #cam{display:none}
   .half.nocam .row{display:none}
+  .pick{display:none;flex:1 1 auto;align-items:center;justify-content:center;text-align:center;
+    font-size:12px;line-height:1.4;color:#8a9aa8;min-height:56px;padding:4px}
+  .half:not(.sel) .pick{display:flex}
+  .half.sel{box-shadow:0 0 0 2px rgba(255,255,255,.14) inset}
+  .half.sel.htop{box-shadow:0 0 0 2px #356b4c inset}
+  .half.sel.hbot{box-shadow:0 0 0 2px #57407a inset}
   .half .row{flex:0 0 auto}
   .half .row button{width:100%;padding:10px 8px;font-size:13px;border-radius:11px}
   .half.htop{border-color:#2b4a37}
@@ -77,7 +83,7 @@
   #bReset{background:#2a2110;border:1px solid #8a6d1f;color:#f2c96b;margin-top:8px;width:100%;
     border-radius:12px;padding:11px;font-size:13px;font-weight:600;font-family:inherit}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=58">
+<link rel="stylesheet" href="../assets/ui.css?v=59">
 </head>
 <body data-sec="rooms">
 <div class="wrap">
@@ -100,6 +106,7 @@
         <div class="hhd"><span class="tag">1</span> Rasmlar
           <span class="hp" id="pCnt">0/2</span></div>
         <video id="cam" autoplay playsinline muted></video>
+        <div class="pick">👆 Boshlash uchun shu yarmini bosing</div>
         <input type="file" id="fCam" accept="image/*" capture="environment" style="display:none">
         <div class="thumbs" id="thumbs"></div>
         <div class="row" id="topRow">
@@ -112,6 +119,7 @@
         <div class="hhd"><span class="tag">2</span> Video (GIF)
           <span class="hp" id="vCnt">0/1</span></div>
         <video id="vprev" playsinline muted></video>
+        <div class="pick">👆 Boshlash uchun shu yarmini bosing</div>
         <div class="vstat" id="vSt">12 sekundgacha ovozsiz yoziladi</div>
         <div class="row" id="botRow">
           <button class="snap2" id="bRec">🎬 Yozish</button>
@@ -133,7 +141,7 @@
 var API = "https://maintenance-production-d87e.up.railway.app";
 var ROOMS = API + "/api/tmt/rooms";
 var UP = API + "/api/tmt/upload";
-var need = 2, cur = null, canManage = false, curOpen = true, busy = false, stream = null;
+var need = 2, cur = null, canManage = false, curOpen = true, busy = false, stream = null, sel = "";
 var REC_MAX = 12000, rec = null, chunks = [], recTimer = null, recT0 = 0;
 var vBlob = null, vUrl = "", vMime = "", vExt = "mp4", vDur = 0;
 var WINDOWS = {}, RM = {};
@@ -273,12 +281,15 @@ function syncUI(){
     : (done ? "✅ allaqachon bajarilgan" : "Rasm " + pc + "/" + need + " YOKI 1 video");
   $("bReset").style.display = (canManage && (done || pc || vc || cur.reopened || cur.staffTotal)) ? "block" : "none";
   var live = curOpen && !done;
-  $("cam").style.display = live ? "" : "none";
-  $("topRow").style.display = (live && pc < need) ? "" : "none";
-  $("botRow").style.display = (live && !vc && !vBlob) ? "" : "none";
-  $("decRow").style.display = (live && vBlob) ? "" : "none";
-  $("hTop").style.opacity = (pc >= need) ? ".55" : "1";
-  $("hBot").style.opacity = (vc >= 1) ? ".55" : "1";
+  if (!live) sel = "";
+  $("hTop").classList.toggle("sel", sel === "top");
+  $("hBot").classList.toggle("sel", sel === "bot");
+  $("cam").style.display = (live && sel) ? "" : "none";
+  $("topRow").style.display = (live && sel === "top" && pc < need) ? "" : "none";
+  $("botRow").style.display = (live && sel === "bot" && !vc && !vBlob) ? "" : "none";
+  $("decRow").style.display = (live && sel === "bot" && vBlob) ? "" : "none";
+  $("hTop").style.opacity = (!live || sel === "top") ? (pc >= need ? ".6" : "1") : ".7";
+  $("hBot").style.opacity = (!live || sel === "bot") ? (vc >= 1 ? ".6" : "1") : ".7";
   $("bSnap").disabled = !!busy;
   $("bRec").disabled = !!busy || !live;
   if (!live) camFallback(false);
@@ -323,18 +334,30 @@ function openRoom(id){
   if (r.done){ say("✅ Bu xona allaqachon tekshirilgan", "ok"); camStop(); return; }
   if (w && w.enabled && w.open && w.left != null) say("⏰ Yopilishiga " + w.left + " daqiqa qoldi");
   camFallback(false);
-  if (camLive()){
-    $("cam").srcObject = stream;
-    if ($("cam").play){ var pc2 = $("cam").play(); if (pc2 && pc2.catch) pc2.catch(function(){}); }
-  } else {
-    camStart(function(err){
-      if (err && err !== "yopiq") say(err, "err");
-    });
-  }
+  sel = "";
+  camStop();
+  camFallback(false);
+  syncUI();
 }
 
+function pick(k){
+  if (!cur || !curOpen || cur.done || busy) return;
+  if (rec) return;
+  sel = k;
+  syncUI();
+  if (!camLive()) camStart(function(err){ if (err && err !== "yopiq") say(err, "err"); });
+}
+$("hTop").addEventListener("click", function(e){
+  if (e.target.closest("button, input")) return;
+  pick("top");
+});
+$("hBot").addEventListener("click", function(e){
+  if (e.target.closest("button")) return;
+  pick("bot");
+});
+
 document.addEventListener("visibilitychange", function(){
-  if (document.hidden || !$("sheet").classList.contains("on") || !curOpen) return;
+  if (document.hidden || !sel || !$("sheet").classList.contains("on") || !curOpen) return;
   if (!camLive()) camStart(function(){});
 });
 
@@ -350,6 +373,7 @@ function closeSheet(force){
   vReset(true);
   try { if (rec && rec.state !== "inactive") rec.stop(); } catch(e){}
   $("sheet").classList.remove("on");
+  sel = "";
   busy = false; $("bSnap").disabled = false; $("bRec").disabled = false;
   camFallback(false);
   camStop();
