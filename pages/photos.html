@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Xona rasmlari — TMT</title>
-<link rel="stylesheet" href="../style.css?v=57">
+<link rel="stylesheet" href="../style.css?v=58">
 <script src="../assets/telegram-web-app.js"></script>
-<script src="../assets/tg.js?v=57"></script>
-<link rel="stylesheet" href="../assets/ui.css?v=57">
+<script src="../assets/tg.js?v=58"></script>
+<link rel="stylesheet" href="../assets/ui.css?v=58">
 <style>
   .wrap{max-width:520px;margin:0 auto;padding:16px 16px 40px}
   .dt{display:flex;align-items:center;gap:8px;margin:10px 0 6px}
@@ -136,15 +136,21 @@ function phFail(img){
 }
 
 function roomCard(r){
+  var nv = 0;
   var thumbs = r.files.map(function(f, i){
-    return '<button class="ph" data-u="' + esc(f.url) + '" data-i="' + i + '">' +
-           '<img loading="lazy" src="' + esc(media(f.url)) + '" alt="rasm ' + (i + 1) + '" data-src="' + esc(media(f.url)) + '" onerror="phFail(this)">' +
-           '<i>' + (i + 1) + "</i></button>";
+    var isV = (f.kind === "video");
+    if (isV) nv++;
+    var inner = isV
+      ? '<video muted playsinline preload="metadata" src="' + esc(media(f.url)) + '"></video>'
+      : '<img loading="lazy" src="' + esc(media(f.url)) + '" alt="rasm ' + (i + 1) + '" data-src="' + esc(media(f.url)) + '" onerror="phFail(this)">';
+    return '<button class="ph" data-u="' + esc(f.url) + '" data-k="' + (isV ? "video" : "photo") + '" data-i="' + i + '">' +
+           inner + '<i>' + (isV ? "▶ video" : (i + 1)) + "</i></button>";
   }).join("");
+  var cnt = (r.photos || 0) + " rasm" + (nv ? " · " + nv + " video" : "");
   return '<div class="card2 rc">' +
     '<div class="hd"><b>' + esc(r.room) + "</b>" +
       '<span class="tag ' + (r.done ? "ok" : "warn") + '">' + (r.done ? "✓ bajarildi" : "ochiq") + "</span></div>" +
-    '<div class="wr">' + esc(r.worker || "—") + " · " + (r.photos || 0) + " rasm</div>" +
+    '<div class="wr">' + esc(r.worker || "—") + " · " + cnt + "</div>" +
     (r.files.length ? '<div class="thumbs">' + thumbs + "</div>"
                     : '<div class="wr">rasm yuklanmagan</div>') +
   "</div>";
@@ -160,8 +166,16 @@ function render(j){
   }
   $("list").innerHTML = list.map(roomCard).join("");
   $("list").querySelectorAll(".ph").forEach(function(b){
-    b.onclick = function(){ lightbox(media(b.dataset.u)); };
+    b.onclick = function(){
+      if (b.dataset.k === "video") lightboxV(media(b.dataset.u));
+      else lightbox(media(b.dataset.u));
+    };
   });
+}
+
+function lightboxV(src){
+  $("lbbody").innerHTML = '<video src="' + esc(src) + '" controls autoplay loop playsinline webkit-playsinline></video>';
+  $("lb").classList.add("on");
 }
 
 function lightbox(src){
